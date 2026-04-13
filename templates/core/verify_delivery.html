@@ -1,0 +1,117 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Verify Delivery — FoodWasteChain{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 40px; padding-bottom: 60px;">
+    <div class="animate-in" style="margin-bottom: 32px;">
+        <a href="{% url 'dashboard' %}" style="color: var(--text-secondary); font-size: 0.9rem;">← Back to Dashboard</a>
+    </div>
+
+    <div class="glass-static verify-card animate-in">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <div style="font-size: 3rem; margin-bottom: 12px;">🔗</div>
+            <h2>Verify <span class="text-gradient">Delivery</span></h2>
+            <p style="color: var(--text-secondary); font-size: 0.95rem;">
+                Upload a delivery photo to permanently record this donation on the blockchain.
+            </p>
+        </div>
+
+        <!-- Match Summary -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px; margin-bottom: 28px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">Match Summary</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Food</div>
+                    <div style="font-weight: 600;">{{ match.listing.get_food_type_display }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Quantity</div>
+                    <div style="font-weight: 600;">{{ match.listing.quantity_kg }} kg</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Donor</div>
+                    <div style="font-weight: 600; color: var(--emerald-400);">{{ match.listing.donor.profile.organization_name }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Charity</div>
+                    <div style="font-weight: 600; color: var(--sky-400);">{{ match.charity.profile.organization_name }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scanner UI -->
+        <div id="qr-reader" style="width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 24px;"></div>
+        <div id="scan-success" style="display: none; padding: 16px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--emerald-500); color: var(--emerald-400); margin-bottom: 24px;">
+            ✅ QR Code scanned successfully! Now upload a photo and verify.
+        </div>
+
+        <!-- Upload Form -->
+        <form method="post" enctype="multipart/form-data" action="{% url 'verify_delivery' match.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="qr_data" id="qr_data" required>
+
+            <div class="form-group">
+                <label for="delivery-photo">📸 Delivery Photo</label>
+                <input type="file" name="photo" id="delivery-photo" class="form-control" accept="image/*" required>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+                    Take a photo of the food being received by the charity
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div id="preview-container" style="display: none; margin-bottom: 20px; border-radius: var(--radius-md); overflow: hidden;">
+                <img id="preview-image" style="width: 100%; max-height: 250px; object-fit: cover;" alt="Preview">
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: var(--radius-md); background: rgba(14, 165, 233, 0.06); border: 1px solid rgba(14, 165, 233, 0.15); margin-bottom: 24px;">
+                <span style="font-size: 1.5rem;">⛓️</span>
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--sky-400);">Ethereum Sepolia Verification</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">This delivery will be recorded as an immutable transaction on the blockchain.</div>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="btn btn-primary btn-full btn-lg" disabled>
+                ✅ Verify & Record on Blockchain
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+// Image preview
+document.getElementById('delivery-photo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('preview-image').src = e.target.result;
+            document.getElementById('preview-container').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// QR Scanner
+function onScanSuccess(decodedText, decodedResult) {
+    document.getElementById('qr_data').value = decodedText;
+    document.getElementById('scan-success').style.display = 'block';
+    document.getElementById('submit-btn').disabled = false;
+    // Let the user still upload the photo and submit manually
+    html5QrcodeScanner.clear();
+}
+
+function onScanFailure(error) {}
+
+let html5QrcodeScanner = new Html5QrcodeScanner(
+  "qr-reader",
+  { fps: 10, qrbox: {width: 250, height: 250} },
+  false);
+html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+</script>
+{% endblock %}

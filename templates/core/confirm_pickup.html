@@ -1,0 +1,78 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Verify Pickup QR — FoodWasteChain{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 40px; padding-bottom: 60px;">
+    <div class="animate-in" style="margin-bottom: 32px;">
+        <a href="{% url 'dashboard' %}" style="color: var(--text-secondary); font-size: 0.9rem;">← Back to Dashboard</a>
+    </div>
+
+    <div class="glass-static verify-card animate-in">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <div style="font-size: 3rem; margin-bottom: 12px;">🚚</div>
+            <h2>Verify <span class="text-gradient">Pickup</span></h2>
+            <p style="color: var(--text-secondary); font-size: 0.95rem;">
+                Scan the QR code to confirm that the food has been picked up.
+            </p>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px; margin-bottom: 28px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">Match Summary</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Food</div>
+                    <div style="font-weight: 600;">{{ match.listing.get_food_type_display }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Quantity</div>
+                    <div style="font-weight: 600;">{{ match.listing.quantity_kg }} kg</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scanner UI -->
+        <div id="qr-reader" style="width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 24px;"></div>
+        
+        <form method="post" action="{% url 'confirm_pickup' match.id %}" id="pickup-form">
+            {% csrf_token %}
+            <input type="hidden" name="qr_data" id="qr_data" required>
+            
+            <div id="scan-success" style="display: none; padding: 16px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--emerald-500); color: var(--emerald-400); margin-bottom: 24px;">
+                ✅ QR Code scanned successfully! Click below to confirm pickup.
+            </div>
+
+            <button type="submit" id="submit-btn" class="btn btn-primary btn-full btn-lg" disabled>
+                Confirm Pickup
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    function onScanSuccess(decodedText, decodedResult) {
+        document.getElementById('qr_data').value = decodedText;
+        document.getElementById('scan-success').style.display = 'block';
+        document.getElementById('submit-btn').disabled = false;
+        
+        // Optionally auto-submit
+        // document.getElementById('pickup-form').submit();
+        
+        html5QrcodeScanner.clear();
+    }
+
+    function onScanFailure(error) {
+        // handle scan failure, usually better to ignore and keep scanning.
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+      "qr-reader",
+      { fps: 10, qrbox: {width: 250, height: 250} },
+      /* verbose= */ false);
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Create Listing — FoodWasteChain{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 640px; padding-top: 40px; padding-bottom: 60px;">
+    <div class="animate-in" style="margin-bottom: 32px;">
+        <a href="{% url 'dashboard' %}" style="color: var(--text-secondary); font-size: 0.9rem;">← Back to Dashboard</a>
+    </div>
+
+    <div class="glass-static" style="padding: 40px;">
+        <h2 style="margin-bottom: 8px;">📦 New Food <span class="text-gradient">Listing</span></h2>
+        <p style="color: var(--text-secondary); margin-bottom: 32px; font-size: 0.95rem;">
+            List your surplus food and our AI will find the best charity match instantly.
+        </p>
+
+        {% if form.errors %}
+        <div style="padding: 12px 16px; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.2); border-radius: var(--radius-md); margin-bottom: 20px; color: var(--rose-400); font-size: 0.9rem;">
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <div>{{ field.label }}: {{ error }}</div>
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" action="{% url 'create_listing' %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="listing-food-type">Food Type</label>
+                <select name="food_type" id="listing-food-type" class="form-control" required>
+                    <option value="">Select type...</option>
+                    <option value="cooked_meals">🍛 Cooked Meals</option>
+                    <option value="raw_vegetables">🥬 Raw Vegetables</option>
+                    <option value="fruits">🍎 Fruits</option>
+                    <option value="dairy">🥛 Dairy Products</option>
+                    <option value="bakery">🍞 Bakery Items</option>
+                    <option value="packaged">📦 Packaged Food</option>
+                    <option value="beverages">🥤 Beverages</option>
+                    <option value="mixed">🍱 Mixed / Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="listing-desc">Description</label>
+                <textarea name="description" id="listing-desc" class="form-control" placeholder="Describe the food (e.g., 50 portions of rice & dal, freshly prepared)..." rows="3"></textarea>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="listing-qty">Quantity (kg)</label>
+                    <input type="number" name="quantity_kg" id="listing-qty" class="form-control" placeholder="e.g., 25" step="0.5" min="0.5" required>
+                </div>
+                <div class="form-group">
+                    <label for="listing-value">Estimated Value (₹)</label>
+                    <input type="number" name="estimated_value" id="listing-value" class="form-control" placeholder="e.g., 2500" step="10" min="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="listing-expiry">Expiry Time</label>
+                <input type="datetime-local" name="expiry_time" id="listing-expiry" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="listing-photo">Photo (optional)</label>
+                <input type="file" name="photo" id="listing-photo" class="form-control" accept="image/*">
+            </div>
+
+            <div class="divider"></div>
+
+            <div style="display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.15); margin-bottom: 24px;">
+                <span style="font-size: 1.5rem;">🤖</span>
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--emerald-400);">AI Matching Enabled</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Our engine will automatically find the best charity match within 25km.</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full btn-lg">
+                🚀 Create Listing & Find Match
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Set default expiry to 6 hours from now
+const now = new Date();
+now.setHours(now.getHours() + 6);
+const formatted = now.toISOString().slice(0, 16);
+document.getElementById('listing-expiry').value = formatted;
+document.getElementById('listing-expiry').min = new Date().toISOString().slice(0, 16);
+</script>
+{% endblock %}

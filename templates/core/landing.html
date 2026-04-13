@@ -1,0 +1,171 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}FoodWasteChain — Zero-Cost Food Redistribution{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <h1 class="animate-in">
+            Redistribute Food.<br>
+            <span class="text-gradient">Zero Cost. Blockchain Verified.</span>
+        </h1>
+        <p class="animate-in animate-delay-1">
+            FoodWasteChain connects surplus food from restaurants and hotels with
+            nearby charities using AI-powered matching — verified on the Ethereum blockchain.
+        </p>
+        <div class="hero-actions animate-in animate-delay-2">
+            <a href="{% url 'register' %}" class="btn btn-primary btn-lg">
+                🚀 Join the Chain
+            </a>
+            <a href="#how-it-works" class="btn btn-secondary btn-lg">
+                How It Works →
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Impact Counter -->
+<section class="impact-bar">
+    <div class="container">
+        <div class="impact-grid">
+            <div class="glass impact-item animate-in animate-delay-1">
+                <div class="impact-number text-gradient" id="counter-kg">{{ metrics.total_kg_saved|floatformat:0 }}</div>
+                <div class="impact-label">Kilograms Saved</div>
+            </div>
+            <div class="glass impact-item animate-in animate-delay-2">
+                <div class="impact-number text-gradient-warm">{{ metrics.total_matches }}</div>
+                <div class="impact-label">Matches Made</div>
+            </div>
+            <div class="glass impact-item animate-in animate-delay-3">
+                <div class="impact-number" style="color: var(--sky-400);">{{ metrics.total_verifications }}</div>
+                <div class="impact-label">Blockchain Verifications</div>
+            </div>
+            <div class="glass impact-item animate-in animate-delay-4">
+                <div class="impact-number" style="color: var(--violet-400);">{{ metrics.total_donors|add:metrics.total_charities }}</div>
+                <div class="impact-label">Active Partners</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="section" id="how-it-works">
+    <div class="container">
+        <div class="section-header" style="text-align: center;">
+            <h2>How It <span class="text-gradient">Works</span></h2>
+            <p>Three simple steps to save food from going to waste</p>
+        </div>
+
+        <div class="grid-3">
+            <div class="glass" style="padding: 32px; text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 16px;">📦</div>
+                <h3 style="margin-bottom: 8px;">1. Donors List</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Restaurants and hotels list their surplus food — type, quantity, and expiry window.
+                </p>
+            </div>
+            <div class="glass" style="padding: 32px; text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 16px;">🤖</div>
+                <h3 style="margin-bottom: 8px;">2. AI Matches</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Our engine scores charities by proximity, predicted need, and capacity. Best match wins.
+                </p>
+            </div>
+            <div class="glass" style="padding: 32px; text-align: center;">
+                <div style="font-size: 2.5rem; margin-bottom: 16px;">🔗</div>
+                <h3 style="margin-bottom: 8px;">3. Blockchain Verifies</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Delivery is photo-verified and recorded on Ethereum Sepolia — immutable proof of impact.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Recent Listings -->
+{% if recent_listings %}
+<section class="section">
+    <div class="container">
+        <div class="section-header">
+            <h2>🔥 Latest Available</h2>
+            <p>Fresh surplus listings waiting for a charity match</p>
+        </div>
+
+        <div class="grid-3">
+            {% for listing in recent_listings %}
+            <div class="glass listing-card animate-in" style="animation-delay: {{ forloop.counter0 }}00ms;">
+                <div class="listing-header">
+                    <div class="listing-type">
+                        <div class="type-icon">🍽️</div>
+                        <div>
+                            <strong>{{ listing.get_food_type_display }}</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">{{ listing.donor.profile.organization_name }}</div>
+                        </div>
+                    </div>
+                    <span class="badge badge-{{ listing.status }}">{{ listing.get_status_display }}</span>
+                </div>
+                <div class="listing-meta">
+                    <span>⚖️ {{ listing.quantity_kg }} kg</span>
+                    <span>⏰ {{ listing.time_remaining }}</span>
+                    {% if listing.estimated_value %}
+                    <span>💰 ₹{{ listing.estimated_value|floatformat:0 }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- CTA -->
+<section class="section">
+    <div class="container">
+        <div class="glass-static" style="padding: 64px; text-align: center; border: 1px solid rgba(16, 185, 129, 0.2); background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(14, 165, 233, 0.05));">
+            <h2 style="margin-bottom: 12px;">Ready to make a difference?</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                Whether you're a restaurant with leftover food or a charity feeding the hungry — join FoodWasteChain today.
+            </p>
+            <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+                <a href="{% url 'register' %}" class="btn btn-primary btn-lg">🏢 Register as Donor</a>
+                <a href="{% url 'register' %}" class="btn btn-secondary btn-lg">🏠 Register as Charity</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Animated counters on scroll
+function animateCounter(element, target) {
+    let current = 0;
+    const step = target / 60;
+    const timer = setInterval(() => {
+        current += step;
+        if (current >= target) {
+            current = target;
+            clearInterval(timer);
+        }
+        element.textContent = Math.floor(current).toLocaleString();
+    }, 16);
+}
+
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('animate-in');
+            const counter = entry.target.querySelector('.impact-number');
+            if (counter) {
+                const val = parseInt(counter.textContent.replace(/,/g, '')) || 0;
+                if (val > 0) animateCounter(counter, val);
+            }
+        }
+    });
+}, { threshold: 0.2 });
+
+document.querySelectorAll('.impact-item').forEach(el => observer.observe(el));
+</script>
+{% endblock %}

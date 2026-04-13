@@ -1,0 +1,201 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Charity Dashboard — FoodWasteChain{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="dashboard-header animate-in">
+        <div class="dashboard-title-group">
+            <span class="greeting">Welcome, {{ user.profile.organization_name }}</span>
+            <h1>Charity <span class="text-gradient">Dashboard</span></h1>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid-4" style="margin-bottom: 32px;">
+        <div class="glass stat-card animate-in animate-delay-1">
+            <div class="stat-icon amber">🔔</div>
+            <div class="stat-value" style="color: var(--amber-400);">{{ stats.pending_count }}</div>
+            <div class="stat-label">Pending Matches</div>
+        </div>
+        <div class="glass stat-card animate-in animate-delay-2">
+            <div class="stat-icon violet">✅</div>
+            <div class="stat-value" style="color: var(--violet-400);">{{ stats.accepted_count }}</div>
+            <div class="stat-label">Accepted</div>
+        </div>
+        <div class="glass stat-card animate-in animate-delay-3">
+            <div class="stat-icon emerald">🔗</div>
+            <div class="stat-value text-gradient">{{ stats.verified_count }}</div>
+            <div class="stat-label">Verified on Chain</div>
+        </div>
+        <div class="glass stat-card animate-in animate-delay-4">
+            <div class="stat-icon sky">⚖️</div>
+            <div class="stat-value" style="color: var(--sky-400);">{{ stats.total_received_kg|floatformat:0 }} kg</div>
+            <div class="stat-label">Total Received</div>
+        </div>
+    </div>
+
+    <!-- Pending Matches (action required) -->
+    {% if pending_matches %}
+    <div class="section-header animate-in">
+        <h2>🔔 Action Required</h2>
+        <p>These matches are waiting for your response</p>
+    </div>
+
+    <div class="grid-2" style="margin-bottom: 32px;">
+        {% for match in pending_matches %}
+        <div class="glass match-card pending animate-in" style="animation-delay: {{ forloop.counter0 }}00ms;">
+            <div class="flex-between">
+                <div>
+                    <strong style="font-size: 1.1rem;">{{ match.listing.get_food_type_display }}</strong>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">from {{ match.listing.donor.profile.organization_name }}</div>
+                </div>
+                <span class="badge badge-pending">Pending</span>
+            </div>
+
+            <div class="listing-meta">
+                <span>⚖️ {{ match.listing.quantity_kg }} kg</span>
+                <span>📍 {{ match.road_distance_km|floatformat:1 }} km away</span>
+                <span>⏰ {{ match.listing.time_remaining }}</span>
+            </div>
+
+            <div class="match-score">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Match Score</span>
+                <div class="score-bar">
+                    {% widthratio match.match_score 1 100 as score_pct %}
+                    <div class="score-fill" style="width: {{ score_pct }}%;"></div>
+                </div>
+                <span class="mono" style="font-size: 0.85rem; font-weight: 600; color: var(--emerald-400);">
+                    {% widthratio match.match_score 1 100 %}%
+                </span>
+            </div>
+
+            <div class="listing-footer">
+                <a href="{% url 'accept_match' match.id %}" class="btn btn-primary btn-sm" style="flex: 1;">✅ Accept</a>
+                <a href="{% url 'reject_match' match.id %}" class="btn btn-danger btn-sm" style="flex: 1;">✕ Decline</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Demand Forecast -->
+    <div class="glass-static" style="padding: 32px; margin-bottom: 32px;">
+        <h3 style="margin-bottom: 20px;">📊 7-Day Demand Forecast</h3>
+        <canvas id="forecastChart" height="200"></canvas>
+    </div>
+
+    <!-- All Matches -->
+    <div class="glass-static" style="padding: 24px; margin-bottom: 48px;">
+        <h3 style="margin-bottom: 20px;">Match History</h3>
+
+        {% if matches %}
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Food</th>
+                        <th>Donor</th>
+                        <th>Distance</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in matches %}
+                    <tr>
+                        <td>
+                            <strong>{{ match.listing.get_food_type_display }}</strong>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">{{ match.listing.quantity_kg }} kg</div>
+                        </td>
+                        <td>{{ match.listing.donor.profile.organization_name }}</td>
+                        <td>{{ match.road_distance_km|floatformat:1 }} km</td>
+                        <td>
+                            <span class="mono" style="color: var(--emerald-400);">
+                                {% widthratio match.match_score 1 100 %}%
+                            </span>
+                        </td>
+                        <td><span class="badge badge-{{ match.status }}">{{ match.get_status_display }}</span></td>
+                        <td style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            {% if match.status == 'pending' %}
+                                <a href="{% url 'accept_match' match.id %}" class="btn btn-primary btn-sm">✅ Accept</a>
+                                <a href="{% url 'reject_match' match.id %}" class="btn btn-danger btn-sm">✕</a>
+                            {% elif match.status == 'accepted' %}
+                                <a href="{% url 'match_qr' match.id %}" class="btn btn-secondary btn-sm">📲 QR</a>
+                                <a href="{% url 'confirm_pickup' match.id %}" class="btn btn-primary btn-sm">Pickup ✓</a>
+                            {% elif match.status == 'picked_up' %}
+                                <a href="{% url 'verify_delivery' match.id %}" class="btn btn-primary btn-sm">⛓ Verify</a>
+                            {% elif match.status == 'verified' %}
+                                <a href="{% url 'match_qr' match.id %}" class="btn btn-secondary btn-sm">📲 QR</a>
+                                <a href="{% url 'download_receipt' match.id %}" class="btn btn-primary btn-sm">📄 Receipt</a>
+                                {% if match.blockchain_tx_hash %}
+                                <a href="{{ match.etherscan_url }}" target="_blank" class="btn btn-secondary btn-sm">🔗 Chain</a>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🤝</div>
+            <h3>No matches yet</h3>
+            <p>Matches will appear here when donors list surplus food near you.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// Demand forecast chart
+const forecastData = {{ forecast|safe }};
+
+if (forecastData && forecastData.length) {
+    const ctx = document.getElementById('forecastChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: forecastData.map(d => d.date),
+            datasets: [{
+                label: 'Predicted Demand (kg)',
+                data: forecastData.map(d => d.predicted_kg),
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: '#10b981',
+                pointBorderColor: '#0a0f1a',
+                pointBorderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color: '#9ca3af', font: { family: 'Inter' } } }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#6b7280', font: { family: 'Inter' } },
+                    grid: { color: 'rgba(255,255,255,0.04)' }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: '#6b7280', font: { family: 'Inter' } },
+                    grid: { color: 'rgba(255,255,255,0.04)' }
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

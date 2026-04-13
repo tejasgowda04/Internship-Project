@@ -1,0 +1,96 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Pickup QR Code — FoodWasteChain{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 40px; padding-bottom: 60px; max-width: 600px; margin: 0 auto;">
+
+    <div class="animate-in" style="margin-bottom: 24px;">
+        <a href="{% url 'dashboard' %}" style="color: var(--text-secondary); font-size: 0.9rem;">← Back to Dashboard</a>
+    </div>
+
+    <div class="glass-static animate-in" style="padding: 40px; text-align: center;">
+
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">📲</div>
+        <h2>Pickup <span class="text-gradient">QR Code</span></h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 32px;">
+            This unique QR code is linked to this specific donation match.<br>
+            Scan it at pickup to verify authenticity.
+        </p>
+
+        <!-- QR Code Image -->
+        {% if match.qr_code %}
+        <div style="display: inline-block; background: white; padding: 16px; border-radius: 16px; margin-bottom: 28px; box-shadow: 0 4px 24px rgba(0,0,0,0.3);">
+            <img src="{{ match.qr_code.url }}" alt="Pickup QR Code" style="width: 220px; height: 220px; display: block;">
+        </div>
+        {% else %}
+        <div style="background: rgba(255,255,255,0.04); border: 1px dashed var(--border-subtle); border-radius: 12px; padding: 48px; margin-bottom: 28px; color: var(--text-muted);">
+            <div style="font-size: 2rem; margin-bottom: 8px;">❌</div>
+            QR code not yet generated.<br>
+            <small>Accept the match first to generate your QR code.</small>
+        </div>
+        {% endif %}
+
+        <!-- Match Summary -->
+        <div style="text-align: left; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 12px;">Match Details</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Food</div>
+                    <div style="font-weight: 600;">{{ match.listing.get_food_type_display }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Quantity</div>
+                    <div style="font-weight: 600;">{{ match.listing.quantity_kg }} kg</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Donor</div>
+                    <div style="font-weight: 600; color: var(--emerald-400);">{{ match.listing.donor.profile.organization_name }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Status</div>
+                    <div><span class="badge badge-{{ match.status }}">{{ match.get_status_display }}</span></div>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Match ID</div>
+                <div class="mono" style="font-size: 0.8rem; color: var(--text-secondary);">{{ match.id }}</div>
+            </div>
+        </div>
+
+        <!-- Blockchain Info (if verified) -->
+        {% if match.status == 'verified' and match.blockchain_tx_hash %}
+        <div style="background: rgba(14, 165, 233, 0.06); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: left;">
+            <div style="font-weight: 600; color: var(--sky-400); font-size: 0.9rem; margin-bottom: 6px;">⛓ Blockchain Verified</div>
+            <div class="mono" style="font-size: 0.75rem; color: var(--text-secondary); word-break: break-all;">
+                {{ match.blockchain_tx_hash }}
+            </div>
+            <a href="{{ match.etherscan_url }}" target="_blank" style="font-size: 0.8rem; color: var(--sky-400); text-decoration: none; display: inline-block; margin-top: 8px;">
+                🔗 View on Etherscan Sepolia →
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            {% if match.qr_code %}
+            <a href="{{ match.qr_code.url }}" download="FWC_QR_{{ match.id }}.png" class="btn btn-secondary" style="flex: 1;">
+                ⬇️ Download QR
+            </a>
+            {% endif %}
+
+            {% if match.status == 'verified' %}
+            <a href="{% url 'download_receipt' match.id %}" class="btn btn-primary" style="flex: 1;">
+                📄 Download Receipt
+            </a>
+            {% endif %}
+
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary" style="flex: 1;">
+                ← Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

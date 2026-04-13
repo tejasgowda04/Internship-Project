@@ -1,0 +1,8 @@
+Django==4.2
+psycopg2-binary==2.9.9
+web3==6.15.1
+requests==2.31.0
+qrcode[pil]==7.4.2
+reportlab==4.1.0
+python-dotenv==1.0.1
+Pillow==10.2.0

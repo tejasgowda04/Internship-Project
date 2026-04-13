@@ -1,0 +1,115 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ listing.get_food_type_display }} — FoodWasteChain{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding-top: 40px; padding-bottom: 60px;">
+    <div class="animate-in" style="margin-bottom: 32px;">
+        <a href="{% url 'dashboard' %}" style="color: var(--text-secondary); font-size: 0.9rem;">← Back to Dashboard</a>
+    </div>
+
+    <!-- Listing Detail Card -->
+    <div class="glass-static animate-in" style="padding: 40px; margin-bottom: 32px;">
+        <div class="flex-between" style="margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="width: 56px; height: 56px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                    🍽️
+                </div>
+                <div>
+                    <h2 style="margin-bottom: 2px;">{{ listing.get_food_type_display }}</h2>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                        by {{ listing.donor.profile.organization_name }}
+                    </div>
+                </div>
+            </div>
+            <span class="badge badge-{{ listing.status }}" style="font-size: 0.85rem; padding: 6px 14px;">
+                {{ listing.get_status_display }}
+            </span>
+        </div>
+
+        {% if listing.description %}
+        <p style="color: var(--text-secondary); margin-bottom: 24px; line-height: 1.7;">{{ listing.description }}</p>
+        {% endif %}
+
+        <div class="grid-3" style="gap: 16px; margin-bottom: 24px;">
+            <div class="glass" style="padding: 20px; text-align: center;">
+                <div style="font-size: 1.5rem; margin-bottom: 4px;">⚖️</div>
+                <div style="font-size: 1.5rem; font-weight: 800;">{{ listing.quantity_kg }} kg</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Quantity</div>
+            </div>
+            <div class="glass" style="padding: 20px; text-align: center;">
+                <div style="font-size: 1.5rem; margin-bottom: 4px;">💰</div>
+                <div style="font-size: 1.5rem; font-weight: 800;">₹{{ listing.estimated_value|floatformat:0 }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Est. Value</div>
+            </div>
+            <div class="glass" style="padding: 20px; text-align: center;">
+                <div style="font-size: 1.5rem; margin-bottom: 4px;">⏰</div>
+                <div style="font-size: 1.5rem; font-weight: 800;">{{ listing.time_remaining }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Time Left</div>
+            </div>
+        </div>
+
+        {% if listing.photo %}
+        <div style="border-radius: var(--radius-md); overflow: hidden; margin-bottom: 24px;">
+            <img src="{{ listing.photo.url }}" alt="Food photo" style="width: 100%; max-height: 300px; object-fit: cover;">
+        </div>
+        {% endif %}
+
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+            Created {{ listing.created_at|date:"d M Y, h:i A" }} • Expires {{ listing.expiry_time|date:"d M Y, h:i A" }}
+        </div>
+    </div>
+
+    <!-- Matches -->
+    {% if matches %}
+    <div class="glass-static" style="padding: 32px;">
+        <h3 style="margin-bottom: 20px;">Matches for This Listing</h3>
+
+        {% for match in matches %}
+        <div class="match-card {{ match.status }} glass" style="margin-bottom: 16px;">
+            <div class="flex-between" style="flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <strong>{{ match.charity.profile.organization_name }}</strong>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                        📍 {{ match.road_distance_km|floatformat:1 }} km away
+                    </div>
+                </div>
+                <span class="badge badge-{{ match.status }}">{{ match.get_status_display }}</span>
+            </div>
+
+            <div class="match-score">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Score</span>
+                <div class="score-bar">
+                    {% widthratio match.match_score 1 100 as score_pct %}
+                    <div class="score-fill" style="width: {{ score_pct }}%;"></div>
+                </div>
+                <span class="mono" style="font-weight: 600; color: var(--emerald-400);">
+                    {% widthratio match.match_score 1 100 %}%
+                </span>
+            </div>
+
+            <div class="flex-between" style="align-items: center; margin-top: 12px; gap: 8px; flex-wrap: wrap;">
+                <div>
+                    {% if match.blockchain_tx_hash %}
+                    <a href="{{ match.etherscan_url }}" target="_blank" class="blockchain-badge">
+                        🔗 Verified on Blockchain — {{ match.blockchain_tx_hash|truncatechars:18 }}
+                    </a>
+                    {% endif %}
+                </div>
+                
+                <div style="display: flex; gap: 8px;">
+                    {% if match.status == 'accepted' or match.status == 'picked_up' %}
+                        <a href="{% url 'match_qr' match.id %}" class="btn btn-secondary btn-sm">📲 QR Code</a>
+                    {% elif match.status == 'verified' %}
+                        <a href="{% url 'match_qr' match.id %}" class="btn btn-secondary btn-sm">📲 QR Code</a>
+                        <a href="{% url 'download_receipt' match.id %}" class="btn btn-primary btn-sm">📄 Receipt</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

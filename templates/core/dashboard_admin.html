@@ -1,0 +1,143 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard — FoodWasteChain{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="dashboard-header animate-in">
+        <div class="dashboard-title-group">
+            <span class="greeting">Platform Overview</span>
+            <h1>Admin <span class="text-gradient">Dashboard</span></h1>
+        </div>
+    </div>
+
+    <!-- Platform Metrics -->
+    <div class="grid-3" style="margin-bottom: 32px;">
+        <div class="glass stat-card animate-in animate-delay-1">
+            <div class="stat-icon emerald">⚖️</div>
+            <div class="stat-value text-gradient">{{ metrics.total_kg_saved|floatformat:0 }}</div>
+            <div class="stat-label">Kilograms Saved</div>
+        </div>
+        <div class="glass stat-card animate-in animate-delay-2">
+            <div class="stat-icon amber">💰</div>
+            <div class="stat-value" style="color: var(--amber-400);">₹{{ metrics.total_value_saved|floatformat:0 }}</div>
+            <div class="stat-label">Value Redistributed</div>
+        </div>
+        <div class="glass stat-card animate-in animate-delay-3">
+            <div class="stat-icon sky">🔗</div>
+            <div class="stat-value" style="color: var(--sky-400);">{{ metrics.total_verifications }}</div>
+            <div class="stat-label">Blockchain Verifications</div>
+        </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom: 32px;">
+        <div class="glass stat-card animate-in animate-delay-1">
+            <div class="stat-icon violet">🤝</div>
+            <div class="stat-value" style="color: var(--violet-400);">{{ metrics.total_matches }}</div>
+            <div class="stat-label">Total Matches</div>
+        </div>
+        <div class="glass stat-card animate-in animate-delay-2">
+            <div class="stat-icon emerald">🏢</div>
+            <div class="stat-value text-gradient">{{ metrics.total_donors }}</div>
+            <div class="stat-label">Registered Donors</div>
+        </div>
+        <div class="glass stat-card animate-in animate-delay-3">
+            <div class="stat-icon rose">🏠</div>
+            <div class="stat-value" style="color: var(--rose-400);">{{ metrics.total_charities }}</div>
+            <div class="stat-label">Registered Charities</div>
+        </div>
+    </div>
+
+    <!-- Recent Listings -->
+    <div class="glass-static" style="padding: 24px; margin-bottom: 32px;">
+        <h3 style="margin-bottom: 20px;">Recent Listings</h3>
+
+        {% if recent_listings %}
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Donor</th>
+                        <th>Food Type</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for listing in recent_listings %}
+                    <tr>
+                        <td class="mono" style="font-size: 0.8rem;">{{ listing.id|truncatechars:12 }}</td>
+                        <td>{{ listing.donor.username }}</td>
+                        <td>{{ listing.get_food_type_display }}</td>
+                        <td>{{ listing.quantity_kg }} kg</td>
+                        <td><span class="badge badge-{{ listing.status }}">{{ listing.get_status_display }}</span></td>
+                        <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ listing.created_at|date:"d M, H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <h3>No listings yet</h3>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Matches -->
+    <div class="glass-static" style="padding: 24px; margin-bottom: 48px;">
+        <h3 style="margin-bottom: 20px;">Recent Matches</h3>
+
+        {% if recent_matches %}
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Food</th>
+                        <th>Donor → Charity</th>
+                        <th>Score</th>
+                        <th>Distance</th>
+                        <th>Status</th>
+                        <th>Blockchain</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in recent_matches %}
+                    <tr>
+                        <td>{{ match.listing.get_food_type_display }}</td>
+                        <td>
+                            <span style="color: var(--emerald-400);">{{ match.listing.donor.username }}</span>
+                            → 
+                            <span style="color: var(--sky-400);">{{ match.charity.username }}</span>
+                        </td>
+                        <td class="mono">{{ match.match_score|floatformat:3 }}</td>
+                        <td>{{ match.road_distance_km|floatformat:1 }} km</td>
+                        <td><span class="badge badge-{{ match.status }}">{{ match.get_status_display }}</span></td>
+                        <td>
+                            {% if match.blockchain_tx_hash %}
+                                <a href="{{ match.etherscan_url }}" target="_blank" class="blockchain-badge" style="font-size: 0.75rem; padding: 4px 8px;">
+                                    🔗 {{ match.blockchain_tx_hash|truncatechars:14 }}
+                                </a>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🤝</div>
+            <h3>No matches yet</h3>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

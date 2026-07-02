@@ -41,22 +41,15 @@
             </div>
         </div>
 
-        <!-- Scanner UI -->
-        <div id="qr-reader" style="width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 24px;"></div>
-        <div id="scan-success" style="display: none; padding: 16px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.1); border: 1px solid var(--emerald-500); color: var(--emerald-400); margin-bottom: 24px;">
-            ✅ QR Code scanned successfully! Now upload a photo and verify.
-        </div>
-
-        <!-- Upload Form -->
+        <!-- Upload Form (No QR required — donor is not present at charity's location) -->
         <form method="post" enctype="multipart/form-data" action="{% url 'verify_delivery' match.id %}">
             {% csrf_token %}
-            <input type="hidden" name="qr_data" id="qr_data" required>
 
             <div class="form-group">
                 <label for="delivery-photo">📸 Delivery Photo</label>
                 <input type="file" name="photo" id="delivery-photo" class="form-control" accept="image/*" required>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
-                    Take a photo of the food being received by the charity
+                    Take a photo of the food received at your location as proof of delivery
                 </div>
             </div>
 
@@ -73,7 +66,15 @@
                 </div>
             </div>
 
-            <button type="submit" id="submit-btn" class="btn btn-primary btn-full btn-lg" disabled>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.15); margin-bottom: 24px;">
+                <span style="font-size: 1.5rem;">✅</span>
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--emerald-400);">QR Already Verified at Pickup</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">The QR code was verified when the food was picked up at the donor's location. A photo proof is sufficient for delivery confirmation.</div>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" class="btn btn-primary btn-full btn-lg">
                 ✅ Verify & Record on Blockchain
             </button>
         </form>
@@ -82,7 +83,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://unpkg.com/html5-qrcode"></script>
 <script>
 // Image preview
 document.getElementById('delivery-photo').addEventListener('change', function(e) {
@@ -96,22 +96,5 @@ document.getElementById('delivery-photo').addEventListener('change', function(e)
         reader.readAsDataURL(file);
     }
 });
-
-// QR Scanner
-function onScanSuccess(decodedText, decodedResult) {
-    document.getElementById('qr_data').value = decodedText;
-    document.getElementById('scan-success').style.display = 'block';
-    document.getElementById('submit-btn').disabled = false;
-    // Let the user still upload the photo and submit manually
-    html5QrcodeScanner.clear();
-}
-
-function onScanFailure(error) {}
-
-let html5QrcodeScanner = new Html5QrcodeScanner(
-  "qr-reader",
-  { fps: 10, qrbox: {width: 250, height: 250} },
-  false);
-html5QrcodeScanner.render(onScanSuccess, onScanFailure);
 </script>
 {% endblock %}

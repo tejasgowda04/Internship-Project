@@ -8,136 +8,415 @@
     <!-- Header -->
     <div class="dashboard-header animate-in">
         <div class="dashboard-title-group">
-            <span class="greeting">Platform Overview</span>
+            <span class="greeting">Platform Control Center</span>
             <h1>Admin <span class="text-gradient">Dashboard</span></h1>
         </div>
-    </div>
-
-    <!-- Platform Metrics -->
-    <div class="grid-3" style="margin-bottom: 32px;">
-        <div class="glass stat-card animate-in animate-delay-1">
-            <div class="stat-icon emerald">⚖️</div>
-            <div class="stat-value text-gradient">{{ metrics.total_kg_saved|floatformat:0 }}</div>
-            <div class="stat-label">Kilograms Saved</div>
-        </div>
-        <div class="glass stat-card animate-in animate-delay-2">
-            <div class="stat-icon amber">💰</div>
-            <div class="stat-value" style="color: var(--amber-400);">₹{{ metrics.total_value_saved|floatformat:0 }}</div>
-            <div class="stat-label">Value Redistributed</div>
-        </div>
-        <div class="glass stat-card animate-in animate-delay-3">
-            <div class="stat-icon sky">🔗</div>
-            <div class="stat-value" style="color: var(--sky-400);">{{ metrics.total_verifications }}</div>
-            <div class="stat-label">Blockchain Verifications</div>
-        </div>
-    </div>
-
-    <div class="grid-3" style="margin-bottom: 32px;">
-        <div class="glass stat-card animate-in animate-delay-1">
-            <div class="stat-icon violet">🤝</div>
-            <div class="stat-value" style="color: var(--violet-400);">{{ metrics.total_matches }}</div>
-            <div class="stat-label">Total Matches</div>
-        </div>
-        <div class="glass stat-card animate-in animate-delay-2">
-            <div class="stat-icon emerald">🏢</div>
-            <div class="stat-value text-gradient">{{ metrics.total_donors }}</div>
-            <div class="stat-label">Registered Donors</div>
-        </div>
-        <div class="glass stat-card animate-in animate-delay-3">
-            <div class="stat-icon rose">🏠</div>
-            <div class="stat-value" style="color: var(--rose-400);">{{ metrics.total_charities }}</div>
-            <div class="stat-label">Registered Charities</div>
-        </div>
-    </div>
-
-    <!-- Recent Listings -->
-    <div class="glass-static" style="padding: 24px; margin-bottom: 32px;">
-        <h3 style="margin-bottom: 20px;">Recent Listings</h3>
-
-        {% if recent_listings %}
-        <div style="overflow-x: auto;">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Donor</th>
-                        <th>Food Type</th>
-                        <th>Quantity</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for listing in recent_listings %}
-                    <tr>
-                        <td class="mono" style="font-size: 0.8rem;">{{ listing.id|truncatechars:12 }}</td>
-                        <td>{{ listing.donor.username }}</td>
-                        <td>{{ listing.get_food_type_display }}</td>
-                        <td>{{ listing.quantity_kg }} kg</td>
-                        <td><span class="badge badge-{{ listing.status }}">{{ listing.get_status_display }}</span></td>
-                        <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ listing.created_at|date:"d M, H:i" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <h3>No listings yet</h3>
+        {% if total_pending > 0 %}
+        <div class="pending-alert animate-in">
+            <span class="pulse-dot"></span>
+            <span>{{ total_pending }} registration{{ total_pending|pluralize }} pending review</span>
         </div>
         {% endif %}
     </div>
 
-    <!-- Recent Matches -->
-    <div class="glass-static" style="padding: 24px; margin-bottom: 48px;">
-        <h3 style="margin-bottom: 20px;">Recent Matches</h3>
+    <!-- Tab Navigation -->
+    <div class="admin-tabs animate-in animate-delay-1">
+        <button class="admin-tab active" onclick="switchTab('overview')" id="tab-overview">📊 Overview</button>
+        <button class="admin-tab" onclick="switchTab('registrations')" id="tab-registrations">
+            👥 Registrations
+            {% if total_pending > 0 %}<span class="tab-badge">{{ total_pending }}</span>{% endif %}
+        </button>
+        <button class="admin-tab" onclick="switchTab('analytics')" id="tab-analytics">📈 Analytics</button>
+        <button class="admin-tab" onclick="switchTab('activity')" id="tab-activity">📋 Activity</button>
+    </div>
 
-        {% if recent_matches %}
-        <div style="overflow-x: auto;">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Food</th>
-                        <th>Donor → Charity</th>
-                        <th>Score</th>
-                        <th>Distance</th>
-                        <th>Status</th>
-                        <th>Blockchain</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for match in recent_matches %}
-                    <tr>
-                        <td>{{ match.listing.get_food_type_display }}</td>
-                        <td>
-                            <span style="color: var(--emerald-400);">{{ match.listing.donor.username }}</span>
-                            → 
-                            <span style="color: var(--sky-400);">{{ match.charity.username }}</span>
-                        </td>
-                        <td class="mono">{{ match.match_score|floatformat:3 }}</td>
-                        <td>{{ match.road_distance_km|floatformat:1 }} km</td>
-                        <td><span class="badge badge-{{ match.status }}">{{ match.get_status_display }}</span></td>
-                        <td>
-                            {% if match.blockchain_tx_hash %}
-                                <a href="{{ match.etherscan_url }}" target="_blank" class="blockchain-badge" style="font-size: 0.75rem; padding: 4px 8px;">
-                                    🔗 {{ match.blockchain_tx_hash|truncatechars:14 }}
-                                </a>
-                            {% else %}
+    <!-- ═══ TAB: OVERVIEW ═══ -->
+    <div id="panel-overview" class="tab-panel active">
+        <!-- Platform Metrics -->
+        <div class="grid-3" style="margin-bottom: 32px;">
+            <div class="glass stat-card animate-in animate-delay-1">
+                <div class="stat-icon emerald">⚖️</div>
+                <div class="stat-value text-gradient">{{ metrics.total_kg_saved|floatformat:0 }}</div>
+                <div class="stat-label">Kilograms Saved</div>
+            </div>
+            <div class="glass stat-card animate-in animate-delay-2">
+                <div class="stat-icon amber">💰</div>
+                <div class="stat-value" style="color: var(--amber-400);">₹{{ metrics.total_value_saved|floatformat:0 }}</div>
+                <div class="stat-label">Value Redistributed</div>
+            </div>
+            <div class="glass stat-card animate-in animate-delay-3">
+                <div class="stat-icon sky">🔗</div>
+                <div class="stat-value" style="color: var(--sky-400);">{{ metrics.total_verifications }}</div>
+                <div class="stat-label">Blockchain Verifications</div>
+            </div>
+        </div>
+
+        <div class="grid-4" style="margin-bottom: 32px;">
+            <div class="glass stat-card animate-in animate-delay-1">
+                <div class="stat-icon violet">🤝</div>
+                <div class="stat-value" style="color: var(--violet-400);">{{ metrics.total_matches }}</div>
+                <div class="stat-label">Total Matches</div>
+            </div>
+            <div class="glass stat-card animate-in animate-delay-2">
+                <div class="stat-icon emerald">🏢</div>
+                <div class="stat-value text-gradient">{{ metrics.total_donors }}</div>
+                <div class="stat-label">Registered Donors</div>
+            </div>
+            <div class="glass stat-card animate-in animate-delay-3">
+                <div class="stat-icon rose">🏠</div>
+                <div class="stat-value" style="color: var(--rose-400);">{{ metrics.total_charities }}</div>
+                <div class="stat-label">Registered Charities</div>
+            </div>
+            <div class="glass stat-card animate-in animate-delay-4">
+                <div class="stat-icon sky">👤</div>
+                <div class="stat-value" style="color: var(--sky-400);">{{ total_users }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+        </div>
+
+        <!-- System Health -->
+        <div class="glass-static" style="padding: 24px; margin-bottom: 32px;">
+            <h3 style="margin-bottom: 20px;">🩺 System Health</h3>
+            <div class="grid-4">
+                <div class="health-item">
+                    <div class="health-indicator health-good"></div>
+                    <div>
+                        <div class="health-value">{{ active_listings }}</div>
+                        <div class="health-label">Active Listings</div>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator {% if blockchain_txns > 0 %}health-good{% else %}health-warn{% endif %}"></div>
+                    <div>
+                        <div class="health-value">{{ blockchain_txns }}</div>
+                        <div class="health-label">Blockchain TXs</div>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator {% if expired_listings == 0 %}health-good{% else %}health-warn{% endif %}"></div>
+                    <div>
+                        <div class="health-value">{{ expired_listings }}</div>
+                        <div class="health-label">Expired Listings</div>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator {% if total_pending == 0 %}health-good{% else %}health-alert{% endif %}"></div>
+                    <div>
+                        <div class="health-value">{{ total_pending }}</div>
+                        <div class="health-label">Pending Reviews</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registration Stats Bar -->
+        <div class="glass-static" style="padding: 24px; margin-bottom: 32px;">
+            <h3 style="margin-bottom: 20px;">📋 Registration Overview</h3>
+            <div class="grid-3">
+                <div class="reg-stat-card pending-bg">
+                    <div class="reg-stat-num">{{ total_pending }}</div>
+                    <div class="reg-stat-label">⏳ Pending</div>
+                </div>
+                <div class="reg-stat-card approved-bg">
+                    <div class="reg-stat-num">{{ total_approved }}</div>
+                    <div class="reg-stat-label">✅ Approved</div>
+                </div>
+                <div class="reg-stat-card rejected-bg">
+                    <div class="reg-stat-num">{{ total_rejected }}</div>
+                    <div class="reg-stat-label">❌ Rejected</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ TAB: REGISTRATIONS ═══ -->
+    <div id="panel-registrations" class="tab-panel">
+        <!-- Pending Queue -->
+        <div class="glass-static" style="padding: 24px; margin-bottom: 32px;">
+            <h3 style="margin-bottom: 20px;">
+                ⏳ Pending Registrations
+                {% if total_pending > 0 %}<span class="badge badge-pending" style="margin-left: 8px;">{{ total_pending }}</span>{% endif %}
+            </h3>
+            {% if pending_registrations %}
+            <div class="reg-queue" style="display: flex; flex-direction: column; gap: 24px;">
+                {% for profile in pending_registrations %}
+                <div class="glass reg-card animate-in" style="animation-delay: {{ forloop.counter0 }}00ms; padding: 24px; border-radius: var(--radius-lg); background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); transition: transform 0.2s ease;">
+                    <div class="reg-card-header" style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; gap: 16px; align-items: center;">
+                            <div class="reg-avatar {% if profile.role == 'charity' %}avatar-charity{% else %}avatar-donor{% endif %}" style="font-size: 1.8rem; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 12px;">
+                                {% if profile.role == 'charity' %}🏠{% else %}🏢{% endif %}
+                            </div>
+                            <div class="reg-info" style="display: flex; flex-direction: column; gap: 4px;">
+                                <h4 style="margin: 0; font-size: 1.1rem; color: #fff;">{{ profile.organization_name }}</h4>
+                                <span class="reg-meta" style="font-size: 0.85rem; color: var(--slate-400);">{{ profile.user.email }} · {{ profile.get_role_display }} · {{ profile.created_at|timesince }} ago</span>
+                            </div>
+                        </div>
+                        <span class="badge badge-pending" style="font-size: 0.75rem; padding: 4px 10px; background: rgba(245, 158, 11, 0.2); color: var(--amber-400); border-radius: 99px;">Pending</span>
+                    </div>
+                    
+                    <div class="reg-card-details" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; font-size: 0.9rem;">
+                        <div class="detail-row" style="display: flex; flex-direction: column; gap: 4px;">
+                            <span class="detail-label" style="color: var(--slate-500); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Username</span>
+                            <span style="color: #e2e8f0;">{{ profile.user.username }}</span>
+                        </div>
+                        <div class="detail-row" style="display: flex; flex-direction: column; gap: 4px;">
+                            <span class="detail-label" style="color: var(--slate-500); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Phone</span>
+                            <span style="color: #e2e8f0;">{{ profile.phone|default:"—" }}</span>
+                        </div>
+                        <div class="detail-row" style="display: flex; flex-direction: column; gap: 4px; grid-column: 1 / -1;">
+                            <span class="detail-label" style="color: var(--slate-500); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Address</span>
+                            <span style="color: #e2e8f0; line-height: 1.4;">{{ profile.address|default:"—"|truncatewords:15 }}</span>
+                        </div>
+                        {% if profile.registration_doc %}
+                        <div class="detail-row" style="display: flex; flex-direction: column; gap: 4px; grid-column: 1 / -1;">
+                            <span class="detail-label" style="color: var(--slate-500); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Document</span>
+                            <a href="{{ profile.registration_doc.url }}" target="_blank" class="doc-link" style="color: var(--sky-400); text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">📄 View Uploaded Document</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="reg-card-actions" style="display: flex; gap: 12px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <form method="post" action="{% url 'admin_approve_registration' profile.id %}" style="flex: 2;">
+                            {% csrf_token %}
+                            <input type="hidden" name="admin_notes" value="Approved after verification.">
+                            <button type="submit" class="btn btn-primary" style="width: 100%; height: 42px; background: linear-gradient(135deg, var(--emerald-500), var(--emerald-400)); border: none; color: white; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; transition: opacity 0.2s;">✅ Approve Now</button>
+                        </form>
+                        <a href="{% url 'admin_registration_detail' profile.id %}" class="btn btn-secondary" style="flex: 1; height: 42px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: var(--radius-md); text-decoration: none; font-weight: 500; transition: background 0.2s;">🔍 Review Details</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding: 40px;">
+                <div class="empty-icon">✅</div>
+                <h3>All caught up!</h3>
+                <p style="color: var(--text-secondary);">No pending registrations to review.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- All Registrations Table -->
+        <div class="glass-static" style="padding: 24px; margin-bottom: 32px;">
+            <h3 style="margin-bottom: 20px;">📝 All Registrations</h3>
+            {% if all_registrations %}
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Organization</th>
+                            <th>Role</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in all_registrations %}
+                        <tr>
+                            <td><strong>{{ profile.organization_name }}</strong></td>
+                            <td><span class="badge {% if profile.role == 'charity' %}badge-matched{% else %}badge-available{% endif %}">{{ profile.get_role_display }}</span></td>
+                            <td style="font-size: 0.85rem;">{{ profile.user.email }}</td>
+                            <td style="font-size: 0.85rem;">{{ profile.phone|default:"—" }}</td>
+                            <td>
+                                <span class="badge badge-{{ profile.approval_status }}">{{ profile.get_approval_status_display }}</span>
+                            </td>
+                            <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ profile.created_at|date:"d M Y" }}</td>
+                            <td>
+                                {% if profile.approval_status == 'pending' %}
+                                <a href="{% url 'admin_registration_detail' profile.id %}" class="btn btn-secondary btn-sm">Review</a>
+                                {% else %}
                                 <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state"><div class="empty-icon">👥</div><h3>No registrations yet</h3></div>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="empty-state">
-            <div class="empty-icon">🤝</div>
-            <h3>No matches yet</h3>
+    </div>
+
+    <!-- ═══ TAB: ANALYTICS ═══ -->
+    <div id="panel-analytics" class="tab-panel">
+        <div class="grid-2" style="margin-bottom: 32px;">
+            <div class="glass-static" style="padding: 24px;">
+                <h3 style="margin-bottom: 16px;">📦 Donation Volume (30 Days)</h3>
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="donationChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-static" style="padding: 24px;">
+                <h3 style="margin-bottom: 16px;">🤝 Match Activity (30 Days)</h3>
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="matchChart"></canvas>
+                </div>
+            </div>
         </div>
-        {% endif %}
+        <div class="grid-2" style="margin-bottom: 32px;">
+            <div class="glass-static" style="padding: 24px;">
+                <h3 style="margin-bottom: 16px;">🍽️ Food Type Distribution</h3>
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="foodTypeChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-static" style="padding: 24px;">
+                <h3 style="margin-bottom: 16px;">📊 Match Status Breakdown</h3>
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="matchStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ TAB: ACTIVITY ═══ -->
+    <div id="panel-activity" class="tab-panel">
+        <div class="glass-static" style="padding: 24px; margin-bottom: 32px;">
+            <h3 style="margin-bottom: 20px;">Recent Listings</h3>
+            {% if recent_listings %}
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead><tr><th>ID</th><th>Donor</th><th>Food Type</th><th>Quantity</th><th>Status</th><th>Created</th></tr></thead>
+                    <tbody>
+                        {% for listing in recent_listings %}
+                        <tr>
+                            <td class="mono" style="font-size: 0.8rem;">{{ listing.id|truncatechars:12 }}</td>
+                            <td>{{ listing.donor.username }}</td>
+                            <td>{{ listing.get_food_type_display }}</td>
+                            <td>{{ listing.quantity_kg }} kg</td>
+                            <td><span class="badge badge-{{ listing.status }}">{{ listing.get_status_display }}</span></td>
+                            <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ listing.created_at|date:"d M, H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state"><div class="empty-icon">📋</div><h3>No listings yet</h3></div>
+            {% endif %}
+        </div>
+
+        <div class="glass-static" style="padding: 24px; margin-bottom: 48px;">
+            <h3 style="margin-bottom: 20px;">Recent Matches</h3>
+            {% if recent_matches %}
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead><tr><th>Food</th><th>Donor → Charity</th><th>Score</th><th>Distance</th><th>Status</th><th>Blockchain</th></tr></thead>
+                    <tbody>
+                        {% for match in recent_matches %}
+                        <tr>
+                            <td>{{ match.listing.get_food_type_display }}</td>
+                            <td>
+                                <span style="color: var(--emerald-400);">{{ match.listing.donor.username }}</span>
+                                → <span style="color: var(--sky-400);">{{ match.charity.username }}</span>
+                            </td>
+                            <td class="mono">{{ match.match_score|floatformat:3 }}</td>
+                            <td>{{ match.road_distance_km|floatformat:1 }} km</td>
+                            <td><span class="badge badge-{{ match.status }}">{{ match.get_status_display }}</span></td>
+                            <td>
+                                {% if match.blockchain_tx_hash %}
+                                <a href="{{ match.etherscan_url }}" target="_blank" class="blockchain-badge" style="font-size: 0.75rem; padding: 4px 8px;">🔗 {{ match.blockchain_tx_hash|truncatechars:14 }}</a>
+                                {% else %}<span style="color: var(--text-muted); font-size: 0.8rem;">—</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state"><div class="empty-icon">🤝</div><h3>No matches yet</h3></div>
+            {% endif %}
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// Tab switching
+function switchTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'analytics' && !window._chartsRendered) { renderCharts(); window._chartsRendered = true; }
+}
+
+// Chart rendering
+const chartData = JSON.parse('{{ chart_data|escapejs }}');
+const chartColors = {
+    emerald: 'rgba(16,185,129,', sky: 'rgba(14,165,233,',
+    amber: 'rgba(245,158,11,', violet: 'rgba(139,92,246,',
+    rose: 'rgba(244,63,94,', blue: 'rgba(59,130,246,'
+};
+const chartDefaults = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#9ca3af', font: { family: 'Inter' } } } },
+    scales: {
+        x: { ticks: { color: '#6b7280', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#6b7280', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true }
+    }
+};
+
+function renderCharts() {
+    // Donation volume
+    new Chart(document.getElementById('donationChart'), {
+        type: 'bar', data: {
+            labels: chartData.daily_donations.map(d => d.date.slice(5)),
+            datasets: [{
+                label: 'Donations', data: chartData.daily_donations.map(d => d.count),
+                backgroundColor: chartColors.emerald + '0.6)', borderColor: chartColors.emerald + '1)', borderWidth: 1, borderRadius: 4
+            }, {
+                label: 'Kg Donated', data: chartData.daily_donations.map(d => d.kg),
+                backgroundColor: chartColors.sky + '0.4)', borderColor: chartColors.sky + '1)', borderWidth: 1, borderRadius: 4
+            }]
+        }, options: chartDefaults
+    });
+    // Match activity
+    new Chart(document.getElementById('matchChart'), {
+        type: 'line', data: {
+            labels: chartData.daily_matches.map(d => d.date.slice(5)),
+            datasets: [{ label: 'Matches', data: chartData.daily_matches.map(d => d.count),
+                borderColor: chartColors.violet + '1)', backgroundColor: chartColors.violet + '0.1)',
+                fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: chartColors.violet + '1)'
+            }]
+        }, options: chartDefaults
+    });
+    // Food type doughnut
+    const colors = [chartColors.emerald+'0.8)', chartColors.sky+'0.8)', chartColors.amber+'0.8)',
+                    chartColors.violet+'0.8)', chartColors.rose+'0.8)', chartColors.blue+'0.8)'];
+    new Chart(document.getElementById('foodTypeChart'), {
+        type: 'doughnut', data: {
+            labels: chartData.food_distribution.map(d => d.type),
+            datasets: [{ data: chartData.food_distribution.map(d => d.count), backgroundColor: colors, borderWidth: 0 }]
+        }, options: { responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { color: '#9ca3af', font: { family: 'Inter', size: 11 }, padding: 12 } } }
+        }
+    });
+    // Match status
+    const statusColors = { pending: chartColors.amber+'0.8)', accepted: chartColors.violet+'0.8)',
+        picked_up: chartColors.blue+'0.8)', verified: chartColors.emerald+'0.8)',
+        rejected: chartColors.rose+'0.8)', cancelled: 'rgba(107,114,128,0.8)' };
+    new Chart(document.getElementById('matchStatusChart'), {
+        type: 'doughnut', data: {
+            labels: chartData.match_statuses.map(d => d.status.charAt(0).toUpperCase() + d.status.slice(1)),
+            datasets: [{ data: chartData.match_statuses.map(d => d.count),
+                backgroundColor: chartData.match_statuses.map(d => statusColors[d.status] || 'rgba(107,114,128,0.8)'), borderWidth: 0
+            }]
+        }, options: { responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'right', labels: { color: '#9ca3af', font: { family: 'Inter', size: 11 }, padding: 12 } } }
+        }
+    });
+}
+
+// Auto-switch to registrations tab if there are pending items
+{% if total_pending > 0 %}
+// switchTab('registrations');
+{% endif %}
+</script>
 {% endblock %}

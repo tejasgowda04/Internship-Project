@@ -110,3 +110,33 @@ def generate_pickup_qr_bytes(match):
     except Exception as e:
         logger.error(f"QR bytes generation failed: {e}")
         return None
+
+def verify_qr_data(match, qr_data):
+    """
+    Verify the QR code data scanned by the user matches the expected signature and Match ID.
+    Returns True if valid, False otherwise.
+    """
+    if f'Match: {match.id}' not in qr_data:
+        return False
+        
+    try:
+        lines = qr_data.split('\n')
+        timestamp = None
+        sig = None
+        for line in lines:
+            if line.startswith('Issued: '):
+                timestamp = line.replace('Issued: ', '').strip()
+            elif line.startswith('Sig: '):
+                sig = line.replace('Sig: ', '').strip()
+        
+        if not timestamp or not sig:
+            return False
+            
+        secret = os.environ.get('SECRET_KEY', 'foodwastechain-secret')
+        raw = f"{match.id}|{match.listing.id}|{match.charity.username}|{timestamp}"
+        expected_sig = hashlib.sha256(f"{raw}{secret}".encode()).hexdigest()[:16]
+        
+        return sig == expected_sig
+    except Exception as e:
+        logger.error(f"QR verification error: {e}")
+        return False

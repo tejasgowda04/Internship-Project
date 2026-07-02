@@ -31,12 +31,12 @@
         </div>
         {% endif %}
 
-        <form method="post" action="{% url 'register' %}">
+        <form method="post" action="{% url 'register' %}" enctype="multipart/form-data">
             {% csrf_token %}
 
             <div class="form-group">
                 <label for="reg-role">I am a...</label>
-                <select name="role" id="reg-role" class="form-control" required>
+                <select name="role" id="reg-role" class="form-control" required onchange="toggleDocUpload()">
                     <option value="donor">🏢 Donor (Restaurant / Hotel)</option>
                     <option value="charity">🏠 Charity (NGO / Shelter)</option>
                 </select>
@@ -79,6 +79,12 @@
                 <textarea name="address" id="reg-address" class="form-control" placeholder="Full address for geo-matching" rows="2">{{ form.address.value|default:'' }}</textarea>
             </div>
 
+            <div class="form-group" id="doc-upload-group" style="display: none;">
+                <label for="reg-doc">Registration/License Document (Charities only)</label>
+                <input type="file" name="registration_doc" id="reg-doc" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                <small style="color: var(--slate-400); font-size: 0.85rem; margin-top: 4px; display: block;">Upload your NGO registration or license for admin verification.</small>
+            </div>
+
             <input type="hidden" name="latitude" id="reg-lat" value="12.9716">
             <input type="hidden" name="longitude" id="reg-lng" value="77.5946">
 
@@ -105,5 +111,17 @@ if (navigator.geolocation) {
         document.getElementById('reg-lng').value = pos.coords.longitude;
     });
 }
+
+function toggleDocUpload() {
+    const roleSelect = document.getElementById('reg-role');
+    const docGroup = document.getElementById('doc-upload-group');
+    if (roleSelect.value === 'charity') {
+        docGroup.style.display = 'block';
+    } else {
+        docGroup.style.display = 'none';
+    }
+}
+// Init on load
+document.addEventListener('DOMContentLoaded', toggleDocUpload);
 </script>
 {% endblock %}

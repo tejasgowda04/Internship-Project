@@ -124,12 +124,10 @@
                                 <a href="{% url 'accept_match' match.id %}" class="btn btn-primary btn-sm">✅ Accept</a>
                                 <a href="{% url 'reject_match' match.id %}" class="btn btn-danger btn-sm">✕</a>
                             {% elif match.status == 'accepted' %}
-                                <a href="{% url 'match_qr' match.id %}" class="btn btn-secondary btn-sm">📲 QR</a>
                                 <a href="{% url 'confirm_pickup' match.id %}" class="btn btn-primary btn-sm">Pickup ✓</a>
                             {% elif match.status == 'picked_up' %}
                                 <a href="{% url 'verify_delivery' match.id %}" class="btn btn-primary btn-sm">⛓ Verify</a>
                             {% elif match.status == 'verified' %}
-                                <a href="{% url 'match_qr' match.id %}" class="btn btn-secondary btn-sm">📲 QR</a>
                                 <a href="{% url 'download_receipt' match.id %}" class="btn btn-primary btn-sm">📄 Receipt</a>
                                 {% if match.blockchain_tx_hash %}
                                 <a href="{{ match.etherscan_url }}" target="_blank" class="btn btn-secondary btn-sm">🔗 Chain</a>

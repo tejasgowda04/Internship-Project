@@ -53,7 +53,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ─── Database (Supabase PostgreSQL) ────────────────────
-# Priority: individual POSTGRES_* vars → POSTGRES_URL_NON_POOLING → DATABASE_URL → SQLite
+# Priority: POSTGRES_URL_NON_POOLING → individual POSTGRES_* vars → SQLite
 _pg_host = os.getenv('POSTGRES_HOST', '')
 _pg_user = os.getenv('POSTGRES_USER', '')
 _pg_password = os.getenv('POSTGRES_PASSWORD', '')
@@ -62,8 +62,38 @@ _pg_database = os.getenv('POSTGRES_DATABASE', '')
 # Detect placeholder values
 _has_placeholders = any('your-' in v or '[YOUR-' in v for v in [_pg_host, _pg_user, _pg_password])
 
-if _pg_host and _pg_password and not _has_placeholders:
-    # Use individual Supabase credentials (most reliable)
+_db_url = os.getenv('POSTGRES_URL_NON_POOLING') or os.getenv('POSTGRES_URL') or os.getenv('DATABASE_URL', '')
+_is_placeholder = not _db_url or 'your-' in _db_url or '[YOUR-' in _db_url
+
+if _db_url and not _is_placeholder:
+    import re
+    m = re.match(
+        r'postgres(?:ql)?://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)/(?P<name>[^?\s]+)',
+        _db_url
+    )
+    if m:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': m.group('name'),
+                'USER': m.group('user'),
+                'PASSWORD': m.group('password'),
+                'HOST': m.group('host'),
+                'PORT': m.group('port'),
+                'OPTIONS': {
+                    'sslmode': 'require',
+                },
+            }
+        }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+elif _pg_host and _pg_password and not _has_placeholders:
+    # Fallback to individual Supabase credentials
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -78,44 +108,12 @@ if _pg_host and _pg_password and not _has_placeholders:
         }
     }
 else:
-    # Fallback: parse URL-style connection strings
-    _db_url = os.getenv('POSTGRES_URL_NON_POOLING') or os.getenv('POSTGRES_URL') or os.getenv('DATABASE_URL', '')
-    _is_placeholder = not _db_url or 'your-' in _db_url or '[YOUR-' in _db_url
-
-    if _db_url and not _is_placeholder:
-        import re
-        m = re.match(
-            r'postgres(?:ql)?://(?P<user>[^:]+):(?P<password>[^@]+)@(?P<host>[^:]+):(?P<port>\d+)/(?P<name>[^?\s]+)',
-            _db_url
-        )
-        if m:
-            DATABASES = {
-                'default': {
-                    'ENGINE': 'django.db.backends.postgresql',
-                    'NAME': m.group('name'),
-                    'USER': m.group('user'),
-                    'PASSWORD': m.group('password'),
-                    'HOST': m.group('host'),
-                    'PORT': m.group('port'),
-                    'OPTIONS': {
-                        'sslmode': 'require',
-                    },
-                }
-            }
-        else:
-            DATABASES = {
-                'default': {
-                    'ENGINE': 'django.db.backends.sqlite3',
-                    'NAME': BASE_DIR / 'db.sqlite3',
-                }
-            }
-    else:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
+    }
 
 # ─── Auth ───────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [

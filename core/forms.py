@@ -40,8 +40,13 @@ class RegistrationForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={'placeholder': 'Full address', 'rows': 2, 'id': 'reg-address'})
     )
-    latitude = forms.FloatField(widget=forms.HiddenInput(attrs={'id': 'reg-lat'}), initial=12.9716)
-    longitude = forms.FloatField(widget=forms.HiddenInput(attrs={'id': 'reg-lng'}), initial=77.5946)
+    latitude = forms.FloatField(widget=forms.HiddenInput(attrs={'id': 'reg-lat'}), initial=12.9716, required=False)
+    longitude = forms.FloatField(widget=forms.HiddenInput(attrs={'id': 'reg-lng'}), initial=77.5946, required=False)
+    registration_doc = forms.FileField(
+        required=False,
+        widget=forms.FileInput(attrs={'accept': '.pdf,.jpg,.jpeg,.png', 'id': 'reg-doc'}),
+        help_text='Upload license/registration certificate (PDF or image)',
+    )
 
     def clean(self):
         cleaned = super().clean()
@@ -73,10 +78,21 @@ class FoodListingForm(forms.ModelForm):
             'food_type': forms.Select(attrs={'id': 'listing-food-type'}),
             'description': forms.Textarea(attrs={'placeholder': 'Describe the food...', 'rows': 3, 'id': 'listing-desc'}),
             'quantity_kg': forms.NumberInput(attrs={'placeholder': 'Quantity in kg', 'step': '0.5', 'min': '0.5', 'id': 'listing-qty'}),
-            'estimated_value': forms.NumberInput(attrs={'placeholder': 'Estimated value (₹)', 'step': '10', 'min': '0', 'id': 'listing-value'}),
+            'estimated_value': forms.NumberInput(attrs={'placeholder': 'Estimated value (₹) — for tax/impact reports', 'step': '10', 'min': '0', 'id': 'listing-value'}),
             'expiry_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'id': 'listing-expiry'}),
             'photo': forms.FileInput(attrs={'accept': 'image/*', 'id': 'listing-photo'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Estimated value is optional — primary purpose is donation, not valuation.
+        # Donors can fill it in for tax deduction records / impact reporting.
+        self.fields['estimated_value'].required = False
+
+    def clean_estimated_value(self):
+        """Default to 0 when left blank (prevents NOT NULL database error)."""
+        value = self.cleaned_data.get('estimated_value')
+        return value if value is not None else 0
 
 
 class DeliveryPhotoForm(forms.Form):

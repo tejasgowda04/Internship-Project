@@ -179,7 +179,7 @@ def generate_receipt_pdf(match):
             ['Quantity',           f'{match.listing.quantity_kg} kg'],
             ['Estimated Value',    f'\u20b9 {match.listing.estimated_value}'],
             ['Description',        match.listing.description or '—'],
-            ['Expiry Time',        match.listing.expiry_time.strftime('%d %b %Y, %I:%M %p')],
+            ['Expiry Time',        timezone.localtime(match.listing.expiry_time).strftime('%d %b %Y, %I:%M %p')],
         ]
         food_table = Table(food_data, colWidths=[5 * cm, 11 * cm])
         food_table.setStyle(TableStyle([
@@ -224,10 +224,10 @@ def generate_receipt_pdf(match):
         elements.append(Paragraph("Delivery Timeline", heading_style))
         timeline_data = [
             ['Event', 'Timestamp'],
-            ['Match Created',    match.created_at.strftime('%d %b %Y, %I:%M %p')],
-            ['Accepted By Charity', match.accepted_at.strftime('%d %b %Y, %I:%M %p') if match.accepted_at else '—'],
-            ['Picked Up',        match.picked_up_at.strftime('%d %b %Y, %I:%M %p') if match.picked_up_at else '—'],
-            ['Verified & Recorded', match.verified_at.strftime('%d %b %Y, %I:%M %p') if match.verified_at else '—'],
+            ['Match Created',    timezone.localtime(match.created_at).strftime('%d %b %Y, %I:%M %p')],
+            ['Accepted By Charity', timezone.localtime(match.accepted_at).strftime('%d %b %Y, %I:%M %p') if match.accepted_at else '—'],
+            ['Picked Up',        timezone.localtime(match.picked_up_at).strftime('%d %b %Y, %I:%M %p') if match.picked_up_at else '—'],
+            ['Verified & Recorded', timezone.localtime(match.verified_at).strftime('%d %b %Y, %I:%M %p') if match.verified_at else '—'],
         ]
         tl_table = Table(timeline_data, colWidths=[7 * cm, 9 * cm])
         tl_table.setStyle(TableStyle([

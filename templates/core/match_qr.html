@@ -28,7 +28,12 @@
         <div style="background: rgba(255,255,255,0.04); border: 1px dashed var(--border-subtle); border-radius: 12px; padding: 48px; margin-bottom: 28px; color: var(--text-muted);">
             <div style="font-size: 2rem; margin-bottom: 8px;">❌</div>
             QR code not yet generated.<br>
-            <small>Accept the match first to generate your QR code.</small>
+            {% if match.status == 'pending' %}
+                <small>Accept the match first to generate your QR code.</small>
+            {% else %}
+                <small>Wait for a moment while we generate your unique code...</small>
+                <script>setTimeout(function(){ location.reload(); }, 2000);</script>
+            {% endif %}
         </div>
         {% endif %}
 

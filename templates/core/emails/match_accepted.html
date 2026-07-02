@@ -1,0 +1,24 @@
+{% extends 'core/emails/base_email.html' %}
+
+{% block content %}
+<h2>🎉 Match Accepted — Pickup Incoming!</h2>
+<p>Hi {{ donor_name }},</p>
+<p>Success! The matched charity has officially accepted your food donation. They will be arriving to pick it up soon.</p>
+
+<div class="box">
+    <div class="box-item">
+        <span class="label">Charity Details</span>
+        <span class="value">{{ charity_name }}</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Food to Prepare</span>
+        <span class="value">{{ food_type }} ({{ quantity }} kg)</span>
+    </div>
+</div>
+
+<p><strong>Important Next Step:</strong> When the charity arrives, please log in to your dashboard and present your <strong class="text-emerald">Pickup QR Code</strong>. The charity will scan it from their phone to verify the pickup.</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ dashboard_url }}" class="btn">Open Dashboard</a>
+</div>
+{% endblock %}

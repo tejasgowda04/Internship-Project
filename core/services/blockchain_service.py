@@ -48,8 +48,8 @@ def record_verification(match):
             'nonce': nonce,
             'to': account.address,  # Self-transfer (zero value, data only)
             'value': 0,
-            'gas': 50000,
-            'gasPrice': w3.to_wei('1', 'gwei'),
+            'gas': 100000,
+            'gasPrice': w3.eth.gas_price,
             'data': w3.to_hex(text=verification_data),
             'chainId': 11155111,  # Sepolia chain ID
         }

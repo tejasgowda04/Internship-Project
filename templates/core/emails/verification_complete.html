@@ -1,0 +1,40 @@
+{% extends 'core/emails/base_email.html' %}
+
+{% block content %}
+<h2>🔗 Delivery Verified on the Blockchain</h2>
+<p>Congratulations!</p>
+<p>The food donation process has been fully completely, verified, and immutably recorded on the Ethereum blockchain. This represents another step towards a sustainable, zero-waste future.</p>
+
+<div class="box">
+    <div class="box-item">
+        <span class="label">Matched Charity</span>
+        <span class="value">{{ charity_name }}</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Donor Enterprise</span>
+        <span class="value">{{ donor_name }}</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Food Delivered</span>
+        <span class="value">{{ food_type }} ({{ quantity }} kg)</span>
+    </div>
+</div>
+
+<div class="box" style="background-color: #f0f9ff; border-color: #bae6fd;">
+    <div class="box-item">
+        <span class="label" style="color: #0369a1;">Blockchain Transaction Hash</span>
+        <span class="value text-blue" style="font-family: monospace; word-break: break-all; font-size: 13px;">
+            {{ tx_hash }}
+        </span>
+    </div>
+</div>
+
+<p>We've attached your official digital receipt (PDF) to this email. You can also view the persistent, transparent record on the testnet explorer using the link below.</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    {% if etherscan_url != 'Not available' %}
+    <a href="{{ etherscan_url }}" class="btn" style="background-color: #3b82f6;">View on Etherscan</a>
+    {% endif %}
+    <a href="{{ dashboard_url }}" class="btn" style="margin-left: 10px;">Open Dashboard</a>
+</div>
+{% endblock %}

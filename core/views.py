@@ -15,6 +15,7 @@ All features:
 """
 import json
 import logging
+from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -23,6 +24,7 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
+from django.db.models.functions import TruncDate
 from django.views.decorators.http import require_POST
 
 from .models import UserProfile, FoodListing, Match, DemandHistory, ImpactMetrics
@@ -56,7 +58,7 @@ def register_view(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
-        form = RegistrationForm(request.POST)
+        form = RegistrationForm(request.POST, request.FILES)
         if form.is_valid():
             cd = form.cleaned_data
             user = User.objects.create_user(
@@ -64,26 +66,37 @@ def register_view(request):
                 email=cd['email'],
                 password=cd['password'],
             )
-            UserProfile.objects.create(
+            # Donors are auto-approved; charities need admin review
+            is_donor = cd['role'] == 'donor'
+            profile = UserProfile.objects.create(
                 user=user,
                 role=cd['role'],
                 organization_name=cd['organization_name'],
-                phone=cd.get('phone', ''),
-                address=cd.get('address', ''),
-                latitude=cd.get('latitude', 12.9716),
-                longitude=cd.get('longitude', 77.5946),
+                phone=cd.get('phone') or '',
+                address=cd.get('address') or '',
+                latitude=cd.get('latitude') or 12.9716,
+                longitude=cd.get('longitude') or 77.5946,
+                approval_status='approved' if is_donor else 'pending',
+                registration_doc=cd.get('registration_doc') or None,
             )
             # Update impact metrics
             metrics = ImpactMetrics.get_metrics()
-            if cd['role'] == 'donor':
+            if is_donor:
                 metrics.total_donors += 1
+                metrics.save()
+                login(request, user)
+                messages.success(request, f"Welcome to FoodWasteChain, {cd['organization_name']}!")
+                return redirect('dashboard')
             else:
+                # Don't auto-login charities — they need admin approval first
                 metrics.total_charities += 1
-            metrics.save()
-
-            login(request, user)
-            messages.success(request, f"Welcome to FoodWasteChain, {cd['organization_name']}!")
-            return redirect('dashboard')
+                metrics.save()
+                messages.info(
+                    request,
+                    f"🎉 Registration submitted! Your charity \"{cd['organization_name']}\" "
+                    f"is under review. You'll receive an email once approved by our admin team."
+                )
+                return redirect('login')
     else:
         form = RegistrationForm()
 
@@ -111,6 +124,23 @@ def login_view(request):
 
             user = authenticate(request, username=username, password=password)
             if user is not None:
+                # Block unapproved charities from logging in
+                if hasattr(user, 'profile') and user.profile.role == 'charity':
+                    if user.profile.approval_status == 'pending':
+                        messages.warning(
+                            request,
+                            '⏳ Your registration is still under review. '
+                            'You will receive an email notification once approved by our admin team.'
+                        )
+                        return render(request, 'core/login.html', {'form': form})
+                    elif user.profile.approval_status == 'rejected':
+                        messages.error(
+                            request,
+                            '❌ Your registration was rejected. '
+                            'Please contact support for more information.'
+                        )
+                        return render(request, 'core/login.html', {'form': form})
+
                 login(request, user)
                 messages.success(request, 'Welcome back!')
                 return redirect('dashboard')
@@ -196,19 +226,117 @@ def charity_dashboard(request):
 
 
 def admin_dashboard(request):
-    """Admin overview dashboard."""
+    """Admin overview dashboard with registration review queue and analytics."""
     metrics = ImpactMetrics.get_metrics()
+
+    # Pending registrations (charities awaiting approval)
+    pending_registrations = UserProfile.objects.filter(
+        approval_status='pending'
+    ).select_related('user').order_by('-created_at')
+
+    # Recently reviewed
+    recently_reviewed = UserProfile.objects.filter(
+        approval_status__in=['approved', 'rejected'],
+        reviewed_at__isnull=False
+    ).select_related('user', 'reviewed_by').order_by('-reviewed_at')[:10]
+
+    # All registrations (for the full table)
+    all_registrations = UserProfile.objects.exclude(
+        role='admin'
+    ).select_related('user').order_by('-created_at')[:50]
 
     recent_listings = FoodListing.objects.select_related('donor__profile').all()[:10]
     recent_matches = Match.objects.all().select_related('listing', 'listing__donor__profile', 'charity__profile')[:10]
 
     users_by_role = UserProfile.objects.values('role').annotate(count=Count('id'))
 
+    # Analytics data for charts
+    now = timezone.now()
+    thirty_days_ago = now - timedelta(days=30)
+
+    # Daily donation volume (last 30 days)
+    daily_donations = (
+        FoodListing.objects.filter(created_at__gte=thirty_days_ago)
+        .annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(count=Count('id'), total_kg=Sum('quantity_kg'))
+        .order_by('date')
+    )
+
+    # Daily matches (last 30 days)
+    daily_matches = (
+        Match.objects.filter(created_at__gte=thirty_days_ago)
+        .annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(count=Count('id'))
+        .order_by('date')
+    )
+
+    # Blockchain transactions (verified matches with tx hash)
+    blockchain_txns = Match.objects.filter(
+        blockchain_tx_hash__isnull=False
+    ).exclude(blockchain_tx_hash='').count()
+
+    # Food type distribution
+    food_distribution = (
+        FoodListing.objects.values('food_type')
+        .annotate(count=Count('id'), total_kg=Sum('quantity_kg'))
+        .order_by('-count')
+    )
+
+    # Match status distribution
+    match_statuses = (
+        Match.objects.values('status')
+        .annotate(count=Count('id'))
+    )
+
+    # Registration stats
+    total_pending = pending_registrations.count()
+    total_approved = UserProfile.objects.filter(approval_status='approved').count()
+    total_rejected = UserProfile.objects.filter(approval_status='rejected').count()
+
+    # System health indicators
+    active_listings = FoodListing.objects.filter(status='available').count()
+    expired_listings = FoodListing.objects.filter(status='expired').count()
+    total_users = User.objects.count()
+
+    # Build chart data as JSON
+    chart_data = {
+        'daily_donations': [
+            {'date': d['date'].strftime('%Y-%m-%d'), 'count': d['count'], 'kg': float(d['total_kg'] or 0)}
+            for d in daily_donations
+        ],
+        'daily_matches': [
+            {'date': d['date'].strftime('%Y-%m-%d'), 'count': d['count']}
+            for d in daily_matches
+        ],
+        'food_distribution': [
+            {'type': dict(FoodListing.FOOD_TYPE_CHOICES).get(d['food_type'], d['food_type']),
+             'count': d['count'], 'kg': float(d['total_kg'] or 0)}
+            for d in food_distribution
+        ],
+        'match_statuses': [
+            {'status': d['status'], 'count': d['count']}
+            for d in match_statuses
+        ],
+    }
+
     return render(request, 'core/dashboard_admin.html', {
         'metrics': metrics,
+        'pending_registrations': pending_registrations,
+        'recently_reviewed': recently_reviewed,
+        'all_registrations': all_registrations,
         'recent_listings': recent_listings,
         'recent_matches': recent_matches,
         'users_by_role': {item['role']: item['count'] for item in users_by_role},
+        'chart_data': json.dumps(chart_data),
+        'total_pending': total_pending,
+        'total_approved': total_approved,
+        'total_rejected': total_rejected,
+        'blockchain_txns': blockchain_txns,
+        'active_listings': active_listings,
+        'expired_listings': expired_listings,
+        'total_users': total_users,
     })
 
 
@@ -293,7 +421,26 @@ def listing_detail(request, listing_id):
 @charity_required
 def accept_match(request, match_id):
     """Charity accepts a pending match."""
-    match = get_object_or_404(Match, id=match_id, charity=request.user, status='pending')
+    try:
+        match = Match.objects.get(id=match_id)
+    except Match.DoesNotExist:
+        messages.error(request, 'Match not found.')
+        return redirect('dashboard')
+
+    # Security: Ensure this match belongs to the logged-in charity
+    if match.charity != request.user:
+        messages.error(request, 'This match is not assigned to your organization.')
+        return redirect('dashboard')
+
+    # Handle status issues
+    if match.status == 'accepted':
+        messages.info(request, 'This match has already been accepted.')
+        return redirect('dashboard')
+    
+    if match.status != 'pending':
+        messages.error(request, f'This match cannot be accepted because it is currently {match.get_status_display().lower()}.')
+        return redirect('dashboard')
+
     match.status = 'accepted'
     match.accepted_at = timezone.now()
     match.save()
@@ -320,7 +467,20 @@ def accept_match(request, match_id):
 @charity_required
 def reject_match(request, match_id):
     """Charity rejects a pending match."""
-    match = get_object_or_404(Match, id=match_id, charity=request.user, status='pending')
+    try:
+        match = Match.objects.get(id=match_id)
+    except Match.DoesNotExist:
+        messages.error(request, 'Match not found.')
+        return redirect('dashboard')
+
+    if match.charity != request.user:
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+    if match.status != 'pending':
+        messages.info(request, f'This match cannot be rejected as it is already {match.status}.')
+        return redirect('dashboard')
+
     match.status = 'rejected'
     match.save()
 
@@ -343,11 +503,18 @@ def reject_match(request, match_id):
     messages.info(request, "Match declined. We'll find another charity.")
     return redirect('dashboard')
 
-
 @login_required
 def confirm_pickup(request, match_id):
     """Mark a match as picked up."""
-    match = get_object_or_404(Match, id=match_id, status='accepted')
+    try:
+        match = Match.objects.get(id=match_id)
+    except Match.DoesNotExist:
+        messages.error(request, 'Match not found.')
+        return redirect('dashboard')
+
+    if match.status != 'accepted':
+        messages.error(request, f'Pickup cannot be confirmed. Current status: {match.get_status_display()}')
+        return redirect('dashboard')
 
     # Only the charity or donor involved can confirm
     if request.user != match.charity and request.user != match.listing.donor:
@@ -357,8 +524,9 @@ def confirm_pickup(request, match_id):
     if request.method == 'POST':
         # Verify QR Code
         qr_data = request.POST.get('qr_data', '')
-        if f'Match: {match.id}' not in qr_data:
-            messages.error(request, 'Invalid QR code. Match ID does not correspond to this match.')
+        from .services.qr_service import verify_qr_data
+        if not verify_qr_data(match, qr_data):
+            messages.error(request, 'Invalid QR code signature or match ID does not correspond to this match.')
             return redirect('confirm_pickup', match_id=match.id)
 
         match.status = 'picked_up'
@@ -375,8 +543,25 @@ def confirm_pickup(request, match_id):
 
 @login_required
 def verify_delivery(request, match_id):
-    """Upload delivery photo and trigger blockchain verification."""
-    match = get_object_or_404(Match, id=match_id, status='picked_up')
+    """Upload delivery photo and trigger blockchain verification.
+    Note: QR verification is NOT required here — the charity picks up
+    the food at the donor's location (where QR is verified), then brings
+    it back to their own location.  The donor is not present at the
+    charity's site, so a delivery photo + blockchain recording is the
+    appropriate proof of delivery.
+    """
+    try:
+        match = Match.objects.get(id=match_id)
+    except Match.DoesNotExist:
+        messages.error(request, 'Match not found.')
+        return redirect('dashboard')
+
+    if match.status != 'picked_up':
+        if match.status == 'verified':
+            messages.info(request, 'This delivery has already been verified.')
+        else:
+            messages.error(request, f'Delivery cannot be verified. Current status: {match.get_status_display()}')
+        return redirect('dashboard')
 
     if request.user != match.charity and request.user != match.listing.donor:
         if not hasattr(request.user, 'profile') or request.user.profile.role != 'admin':
@@ -384,11 +569,6 @@ def verify_delivery(request, match_id):
             return redirect('dashboard')
 
     if request.method == 'POST':
-        # Verify QR Code
-        qr_data = request.POST.get('qr_data', '')
-        if f'Match: {match.id}' not in qr_data:
-            messages.error(request, 'Invalid QR code. Match ID does not correspond to this match.')
-            return redirect('verify_delivery', match_id=match.id)
 
         form = DeliveryPhotoForm(request.POST, request.FILES)
         if form.is_valid():
@@ -460,17 +640,18 @@ def verify_delivery(request, match_id):
 def match_qr(request, match_id):
     """
     Display (or regenerate) the pickup QR code for a match.
-    Accessible by the donor, charity, or admin.
+    Only accessible by the DONOR (who shows it) or admin.
+    Charities must NOT see the QR — they scan it at the donor's
+    location during pickup. Showing it here would allow misuse.
     """
     match = get_object_or_404(Match, id=match_id)
 
-    # Access control
+    # Access control — donor and admin only, NOT charity
     is_donor   = request.user == match.listing.donor
-    is_charity = request.user == match.charity
     is_admin   = hasattr(request.user, 'profile') and request.user.profile.role == 'admin'
 
-    if not (is_donor or is_charity or is_admin):
-        messages.error(request, 'Access denied.')
+    if not (is_donor or is_admin):
+        messages.error(request, 'Access denied. Only the donor can view the QR code.')
         return redirect('dashboard')
 
     # Generate QR if not already present
@@ -495,7 +676,15 @@ def download_receipt(request, match_id):
     Generate and stream a PDF receipt for a verified donation match.
     Only accessible after verification is complete.
     """
-    match = get_object_or_404(Match, id=match_id, status='verified')
+    try:
+        match = Match.objects.get(id=match_id)
+    except Match.DoesNotExist:
+        messages.error(request, 'Match not found.')
+        return redirect('dashboard')
+
+    if match.status != 'verified':
+        messages.error(request, 'Receipt is only available for verified deliveries.')
+        return redirect('dashboard')
 
     # Access control
     is_donor   = request.user == match.listing.donor
@@ -597,3 +786,90 @@ def api_match_detail(request, match_id):
         'etherscan_url':   match.etherscan_url,
         'qr_code_url':     match.qr_code.url if match.qr_code else None,
     })
+
+
+# ═══════════════════════════════════════════════════
+#  ADMIN REGISTRATION MANAGEMENT
+# ═══════════════════════════════════════════════════
+
+@login_required
+@admin_required
+def admin_registration_detail(request, profile_id):
+    """View detailed info about a registration for admin review."""
+    profile = get_object_or_404(UserProfile, id=profile_id)
+
+    return render(request, 'core/admin_registration_detail.html', {
+        'profile': profile,
+    })
+
+
+@login_required
+@admin_required
+@require_POST
+def admin_approve_registration(request, profile_id):
+    """Admin approves a pending charity registration."""
+    profile = get_object_or_404(UserProfile, id=profile_id)
+
+    if profile.approval_status != 'pending':
+        messages.info(request, f'This registration has already been {profile.get_approval_status_display().lower()}.')
+        return redirect('dashboard')
+
+    admin_notes = request.POST.get('admin_notes', '')
+
+    profile.approval_status = 'approved'
+    profile.admin_notes = admin_notes
+    profile.reviewed_by = request.user
+    profile.reviewed_at = timezone.now()
+    profile.is_verified = True
+    profile.save()
+
+    # Send approval notification email
+    try:
+        from .services.email_service import notify_registration_approved
+        notify_registration_approved(profile)
+    except Exception as e:
+        logger.error(f"Approval email error: {e}")
+
+    messages.success(
+        request,
+        f'✅ {profile.organization_name} has been approved! '
+        f'They can now log in and use the platform.'
+    )
+    return redirect('dashboard')
+
+
+@login_required
+@admin_required
+@require_POST
+def admin_reject_registration(request, profile_id):
+    """Admin rejects a pending charity registration."""
+    profile = get_object_or_404(UserProfile, id=profile_id)
+
+    if profile.approval_status != 'pending':
+        messages.info(request, f'This registration has already been {profile.get_approval_status_display().lower()}.')
+        return redirect('dashboard')
+
+    admin_notes = request.POST.get('admin_notes', '')
+    if not admin_notes:
+        messages.error(request, 'Please provide a reason for rejection.')
+        return redirect('admin_registration_detail', profile_id=profile.id)
+
+    profile.approval_status = 'rejected'
+    profile.admin_notes = admin_notes
+    profile.reviewed_by = request.user
+    profile.reviewed_at = timezone.now()
+    profile.save()
+
+    # Send rejection notification email
+    try:
+        from .services.email_service import notify_registration_rejected
+        notify_registration_rejected(profile)
+    except Exception as e:
+        logger.error(f"Rejection email error: {e}")
+
+    messages.info(
+        request,
+        f'❌ {profile.organization_name} registration has been rejected.'
+    )
+    return redirect('dashboard')
+

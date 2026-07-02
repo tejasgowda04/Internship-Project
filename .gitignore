@@ -42,3 +42,6 @@ _migrate.txt
 migrate_output.txt
 showmigrations_output.txt
 db_info.txt
+
+# Local Scratch Directory
+scratch/

@@ -1,0 +1,32 @@
+{% extends 'core/emails/base_email.html' %}
+
+{% block content %}
+<h2>✅ Great News: Match Found!</h2>
+<p>Hi {{ donor_name }},</p>
+<p>Your recent food listing has been fully matched with a nearby charity in need of exactly what you offered!</p>
+
+<div class="box">
+    <div class="box-item">
+        <span class="label">Matched Charity</span>
+        <span class="value">{{ charity_name }}</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Food Listed</span>
+        <span class="value">{{ food_type }}</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Distance Range</span>
+        <span class="value">{{ distance }} km</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Match Score</span>
+        <span class="value text-emerald">{{ match_score }}%</span>
+    </div>
+</div>
+
+<p>The charity has been notified about this. Once they accept the match, you will receive another email detailing the pickup schedule.</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ dashboard_url }}" class="btn">View Match Status</a>
+</div>
+{% endblock %}

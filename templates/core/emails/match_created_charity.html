@@ -1,0 +1,36 @@
+{% extends 'core/emails/base_email.html' %}
+
+{% block content %}
+<h2>🍽️ New Food Match Available!</h2>
+<p>Hi {{ charity_name }},</p>
+<p>Great news! A new premium food donation in your area has been algorithmically matched to your organization based on proximity and need.</p>
+
+<div class="box">
+    <div class="box-item">
+        <span class="label">Food Type</span>
+        <span class="value">{{ food_type }}</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Quantity</span>
+        <span class="value">{{ quantity }} kg</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Donor Enterprise</span>
+        <span class="value">{{ donor_name }}</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Distance Away</span>
+        <span class="value">{{ distance }} km</span>
+    </div>
+    <div class="box-item">
+        <span class="label">Expires At</span>
+        <span class="value text-emerald">{{ expiry }}</span>
+    </div>
+</div>
+
+<p>Please log into your FoodWasteChain dashboard to review and either accept or decline this match as soon as possible.</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ dashboard_url }}" class="btn">View Dashboard</a>
+</div>
+{% endblock %}

@@ -887,3 +887,247 @@ textarea.form-control {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* ═══════════════════════════════════════════════════
+   ADMIN DASHBOARD STYLES
+   ═══════════════════════════════════════════════════ */
+
+/* ─── Admin Tabs ─────────────────────────────────── */
+.admin-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 32px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 6px;
+    backdrop-filter: blur(12px);
+    overflow-x: auto;
+}
+
+.admin-tab {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    position: relative;
+}
+
+.admin-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+.admin-tab.active {
+    background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(14,165,233,0.1));
+    color: var(--emerald-400);
+    border: 1px solid rgba(16,185,129,0.2);
+}
+
+.tab-badge {
+    background: var(--rose-500);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeInUp 0.4s ease; }
+
+/* ─── Pending Alert ──────────────────────────────── */
+.pending-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 12px;
+    color: var(--amber-400);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.pulse-dot {
+    width: 10px; height: 10px;
+    background: var(--amber-400);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+/* ─── Registration Cards ─────────────────────────── */
+.reg-queue { display: flex; flex-direction: column; gap: 16px; }
+
+.reg-card { padding: 20px; }
+.reg-card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+
+.reg-avatar {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+.avatar-charity { background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.25); }
+.avatar-donor { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); }
+
+.reg-info { flex: 1; }
+.reg-info h4 { margin: 0 0 4px; font-size: 1rem; color: var(--text-primary); }
+.reg-meta { font-size: 0.8rem; color: var(--text-muted); }
+
+.reg-card-details {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-label { color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
+
+.reg-card-actions { display: flex; gap: 10px; }
+
+.doc-link {
+    color: var(--sky-400);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+.doc-link:hover { color: var(--sky-500); text-decoration: underline; }
+
+/* ─── Badges ─────────────────────────────────────── */
+.badge-pending { background: rgba(245,158,11,0.15); color: var(--amber-400); border: 1px solid rgba(245,158,11,0.3); }
+.badge-approved { background: rgba(16,185,129,0.15); color: var(--emerald-400); border: 1px solid rgba(16,185,129,0.3); }
+.badge-rejected { background: rgba(244,63,94,0.15); color: var(--rose-400); border: 1px solid rgba(244,63,94,0.3); }
+
+/* ─── Registration Stat Cards ────────────────────── */
+.reg-stat-card {
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+}
+.reg-stat-num { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+.reg-stat-label { font-size: 0.85rem; font-weight: 500; }
+
+.pending-bg { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: var(--amber-400); }
+.approved-bg { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); color: var(--emerald-400); }
+.rejected-bg { background: rgba(244,63,94,0.08); border: 1px solid rgba(244,63,94,0.2); color: var(--rose-400); }
+
+/* ─── System Health ──────────────────────────────── */
+.health-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+}
+.health-indicator {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.health-good { background: var(--emerald-400); box-shadow: 0 0 8px rgba(16,185,129,0.4); }
+.health-warn { background: var(--amber-400); box-shadow: 0 0 8px rgba(245,158,11,0.4); }
+.health-alert { background: var(--rose-400); box-shadow: 0 0 8px rgba(244,63,94,0.4); animation: pulse 1.5s infinite; }
+.health-value { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
+.health-label { font-size: 0.78rem; color: var(--text-muted); }
+
+/* ─── Data Tables ────────────────────────────────── */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.data-table th {
+    text-align: left;
+    padding: 12px 14px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.data-table td {
+    padding: 12px 14px;
+    color: var(--text-primary);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ─── Glass Static (no hover animation) ──────────── */
+.glass-static {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+}
+
+/* ─── Buttons (additions) ────────────────────────── */
+.btn-sm { padding: 8px 16px; font-size: 0.85rem; border-radius: 10px; }
+.btn-full { width: 100%; }
+.btn-danger {
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    color: white; border: none; cursor: pointer;
+    padding: 12px 24px; border-radius: 12px;
+    font-family: 'Inter', sans-serif; font-weight: 600;
+    transition: all 0.3s ease;
+}
+.btn-danger:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(244,63,94,0.3); }
+
+/* ─── Review Details Grid ────────────────────────── */
+.review-details-grid { display: flex; flex-direction: column; gap: 2px; }
+.review-details-grid .detail-row { padding: 10px 0; }
+
+/* ─── Security Checklist ─────────────────────────── */
+.checklist { display: flex; flex-direction: column; gap: 10px; }
+.check-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+.check-item:hover { background: rgba(255,255,255,0.04); }
+.check-item input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: var(--emerald-400);
+    cursor: pointer;
+}
+
+/* ─── Responsive Admin ───────────────────────────── */
+@media (max-width: 768px) {
+    .admin-tabs { flex-wrap: nowrap; overflow-x: auto; }
+    .admin-tab { padding: 10px 16px; font-size: 0.82rem; }
+    .reg-card-actions { flex-direction: column; }
+    .health-item { padding: 10px; }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+    .grid-4 { grid-template-columns: 1fr; }
+    .data-table { font-size: 0.8rem; }
+    .data-table th, .data-table td { padding: 8px 10px; }
+}
+

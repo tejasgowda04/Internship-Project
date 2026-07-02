@@ -12,6 +12,12 @@ class UserProfile(models.Model):
         ('admin', 'Admin'),
     ]
 
+    APPROVAL_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='donor')
     organization_name = models.CharField(max_length=200, blank=True)
@@ -20,7 +26,22 @@ class UserProfile(models.Model):
     longitude = models.FloatField(default=77.5946)
     address = models.TextField(blank=True)
     is_verified = models.BooleanField(default=False)
+
+    # Registration approval workflow
+    approval_status = models.CharField(max_length=10, choices=APPROVAL_CHOICES, default='pending')
+    admin_notes = models.TextField(blank=True, help_text='Internal notes from admin review')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_profiles')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    registration_doc = models.FileField(upload_to='registration_docs/', blank=True, null=True, help_text='Legal/license document for verification')
+
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def is_approved(self):
+        """Donors are auto-approved; charities/admins need explicit approval."""
+        if self.role == 'donor':
+            return True
+        return self.approval_status == 'approved'
 
     def __str__(self):
         return f"{self.organization_name or self.user.username} ({self.get_role_display()})"

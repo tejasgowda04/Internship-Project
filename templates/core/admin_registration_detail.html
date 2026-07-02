@@ -1,0 +1,110 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Review Registration — {{ profile.organization_name }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <div class="dashboard-header animate-in">
+        <div class="dashboard-title-group">
+            <span class="greeting">Registration Review</span>
+            <h1>Review <span class="text-gradient">{{ profile.organization_name }}</span></h1>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="glass-static animate-in animate-delay-1" style="padding: 24px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
+            <div class="reg-avatar {% if profile.role == 'charity' %}avatar-charity{% else %}avatar-donor{% endif %}" style="width: 64px; height: 64px; font-size: 2rem;">
+                {% if profile.role == 'charity' %}🏠{% else %}🏢{% endif %}
+            </div>
+            <div>
+                <h2 style="margin-bottom: 4px;">{{ profile.organization_name }}</h2>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="badge badge-{{ profile.approval_status }}">{{ profile.get_approval_status_display }}</span>
+                    <span class="badge {% if profile.role == 'charity' %}badge-matched{% else %}badge-available{% endif %}">{{ profile.get_role_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="review-details-grid">
+            <div class="detail-row"><span class="detail-label">Username</span><span class="mono">{{ profile.user.username }}</span></div>
+            <div class="detail-row"><span class="detail-label">Email</span><span>{{ profile.user.email }}</span></div>
+            <div class="detail-row"><span class="detail-label">Phone</span><span>{{ profile.phone|default:"Not provided" }}</span></div>
+            <div class="detail-row"><span class="detail-label">Address</span><span>{{ profile.address|default:"Not provided" }}</span></div>
+            <div class="detail-row"><span class="detail-label">Location</span><span class="mono">{{ profile.latitude|floatformat:4 }}, {{ profile.longitude|floatformat:4 }}</span></div>
+            <div class="detail-row"><span class="detail-label">Registered</span><span>{{ profile.created_at|date:"d M Y, H:i" }} ({{ profile.created_at|timesince }} ago)</span></div>
+            {% if profile.registration_doc %}
+            <div class="detail-row">
+                <span class="detail-label">Document</span>
+                <a href="{{ profile.registration_doc.url }}" target="_blank" class="doc-link">📄 View Uploaded Document</a>
+            </div>
+            {% else %}
+            <div class="detail-row"><span class="detail-label">Document</span><span style="color: var(--text-muted);">No document uploaded</span></div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if profile.approval_status == 'pending' %}
+    <!-- Security Checklist -->
+    <div class="glass-static animate-in animate-delay-2" style="padding: 24px; margin-bottom: 24px;">
+        <h3 style="margin-bottom: 16px;">🔒 Security Checklist</h3>
+        <div class="checklist">
+            <label class="check-item"><input type="checkbox" id="chk1"><span>Organization name is legitimate and verifiable</span></label>
+            <label class="check-item"><input type="checkbox" id="chk2"><span>Email domain matches the organization</span></label>
+            <label class="check-item"><input type="checkbox" id="chk3"><span>Phone number is valid and reachable</span></label>
+            <label class="check-item"><input type="checkbox" id="chk4"><span>Address is a real, physical location</span></label>
+            <label class="check-item"><input type="checkbox" id="chk5"><span>Registration document verified (if uploaded)</span></label>
+        </div>
+    </div>
+
+    <!-- Action Forms -->
+    <div class="grid-2 animate-in animate-delay-3" style="margin-bottom: 48px;">
+        <!-- Approve -->
+        <div class="glass-static" style="padding: 24px; border: 1px solid rgba(16,185,129,0.2);">
+            <h3 style="color: var(--emerald-400); margin-bottom: 16px;">✅ Approve Registration</h3>
+            <form method="post" action="{% url 'admin_approve_registration' profile.id %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="approve-notes">Admin Notes (optional)</label>
+                    <textarea name="admin_notes" id="approve-notes" class="form-control" rows="3"
+                              placeholder="Add any notes about the verification...">Verified and approved.</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">✅ Approve & Notify</button>
+            </form>
+        </div>
+
+        <!-- Reject -->
+        <div class="glass-static" style="padding: 24px; border: 1px solid rgba(244,63,94,0.2);">
+            <h3 style="color: var(--rose-400); margin-bottom: 16px;">❌ Reject Registration</h3>
+            <form method="post" action="{% url 'admin_reject_registration' profile.id %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="reject-notes">Reason for Rejection (required)</label>
+                    <textarea name="admin_notes" id="reject-notes" class="form-control" rows="3"
+                              placeholder="Explain why this registration is being rejected..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger btn-full">❌ Reject & Notify</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <!-- Already reviewed -->
+    <div class="glass-static animate-in animate-delay-2" style="padding: 24px; margin-bottom: 48px;">
+        <h3 style="margin-bottom: 16px;">📋 Review Details</h3>
+        <div class="detail-row"><span class="detail-label">Status</span><span class="badge badge-{{ profile.approval_status }}">{{ profile.get_approval_status_display }}</span></div>
+        {% if profile.reviewed_by %}
+        <div class="detail-row"><span class="detail-label">Reviewed By</span><span>{{ profile.reviewed_by.username }}</span></div>
+        {% endif %}
+        {% if profile.reviewed_at %}
+        <div class="detail-row"><span class="detail-label">Reviewed At</span><span>{{ profile.reviewed_at|date:"d M Y, H:i" }}</span></div>
+        {% endif %}
+        {% if profile.admin_notes %}
+        <div class="detail-row"><span class="detail-label">Admin Notes</span><span>{{ profile.admin_notes }}</span></div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
